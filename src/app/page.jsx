@@ -1,577 +1,797 @@
-"use client"; // Required: framer-motion uses browser APIs unavailable on the server
+"use client";
 
-// ─── External library imports ─────────────────────────────────────────────────
-import { motion, useInView } from "framer-motion"; // Scroll animations
-import { useRef } from "react";                     // For useInView refs
-import Image from "next/image";                    // Next.js optimized image
-import {
-  Sparkles,  // Tarot / intuition
-  Wind,      // Energy healing
-  BookOpen,  // Full readings
-  Star,      // Numerology
-  Heart,     // Bio / warmth
-  ArrowRight,
-  Moon,      // Monthly package
-} from "lucide-react";
+import { useState } from "react";
 
-// =============================================================================
-// DESIGN TOKENS (Shared across the page layout)
-// =============================================================================
-const TOKENS = {
-  platinum:   "#F7F8FA", // Near-white cool silver — main page bg
-  paleSilver: "#EDF0F4", // Alternating section bg
-  blush:      "#F9D4DC", // Soft pink — glows, accents, icon backgrounds
-  rose:       "#E8A8B5", // Mid-pink — borders, pills, decorative rings
-  white:      "#FFFFFF",
-  charcoal:   "#2D1B23", // Deep plum-charcoal — footer + CTA dark section
-  deepRose:   "#8B3D54", // Primary accent — buttons, italic heading emphasis
-  roseDark:   "#C47F92", // Secondary accent — eyebrow labels
-  textDark:   "#2D1B23", // Main headings
-  textMid:    "#6B4D57", // Body paragraph copy
-  textMuted:  "#9B8089", // Secondary / helper text
-  silver:     "#C8CDD6",
+const theme = {
+  platinum: "#F7F8FA",
+  paleSilver: "#EDF0F4",
+  silver: "#C8CDD6",
+  silverDark: "#9BA3AF",
+  blush: "#F9D4DC",
+  rose: "#E8A8B5",
+  roseDark: "#C47F92",
+  deepRose: "#8B3D54",
+  textDark: "#2D1B23",
+  textMid: "#6B4D57",
+  textMuted: "#9B8089",
+  white: "#FFFFFF",
 };
 
-// =============================================================================
-// ANIMATION VARIANTS (framer-motion)
-// =============================================================================
-const fadeUp = {
-  hidden:  { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: [0.215, 0.610, 0.355, 1.000] },
-  },
-};
+const fonts = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap');
 
-const stagger = {
-  hidden:  {},
-  visible: { transition: { staggerChildren: 0.1 } },
-};
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-// =============================================================================
-// HELPER: <FadeInSection>
-// =============================================================================
-function FadeInSection({ children, className = "", delay = 0 }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.15 });
+  body {
+    font-family: 'Inter', sans-serif;
+    background: ${theme.platinum};
+    color: ${theme.textDark};
+    -webkit-font-smoothing: antialiased;
+  }
 
-  return (
-    <motion.div
-      ref={ref}
-      variants={fadeUp}
-      initial="hidden"
-      animate={isInView ? "visible" : "hidden"}
-      transition={{ delay }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
+  .display {
+    font-family: 'Cormorant Garamond', serif;
+  }
 
-// =============================================================================
-// DATA CONFIGURATIONS
-// =============================================================================
-const SERVICES = [
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes orb-pulse {
+    0%, 100% { opacity: 0.18; transform: scale(1); }
+    50%       { opacity: 0.28; transform: scale(1.04); }
+  }
+
+  .hero-orb {
+    animation: orb-pulse 6s ease-in-out infinite;
+  }
+
+  .hero-content {
+    animation: fadeUp 1s ease both;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(139, 61, 84, 0.10) !important;
+    border-color: ${theme.rose} !important;
+  }
+
+  .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .cta-btn:hover {
+    background: ${theme.deepRose} !important;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 36px rgba(139, 61, 84, 0.28) !important;
+  }
+
+  .cta-btn {
+    transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .nav-link:hover {
+    color: ${theme.deepRose} !important;
+  }
+
+  .nav-link {
+    transition: color 0.2s ease;
+  }
+
+  .testimonial-dot.active {
+    background: ${theme.deepRose} !important;
+    width: 24px !important;
+  }
+
+  .testimonial-dot {
+    transition: background 0.3s ease, width 0.3s ease;
+    cursor: pointer;
+  }
+
+  .pillar-icon {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .section-fade {
+    animation: fadeUp 0.8s ease both;
+  }
+
+  @media (max-width: 768px) {
+    .cards-grid {
+      grid-template-columns: 1fr !important;
+    }
+    .hero-title {
+      font-size: 3.5rem !important;
+    }
+    .nav-links {
+      display: none !important;
+    }
+    .testimonials-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+`;
+
+const testimonials = [
   {
-    Icon: Sparkles,
-    title: "Tarot Reading — Single Card",
-    description: "A focused one-card pull to illuminate the energy of a specific question or moment. Perfect for a quick, grounded check-in.",
-    price: "From R250",
+    quote: "The natal chart reading unraveled planetary themes in my life I had always felt but never understood. Uncanny precision.",
+    name: "Amara N.",
+    role: "Cape Town",
+    initials: "AN",
   },
   {
-    Icon: BookOpen,
-    title: "Tarot Reading — Full Spread",
-    description: "An in-depth Celtic Cross or custom spread exploring past influences, present energy, and the path unfolding ahead of you.",
-    price: "From R550",
+    quote: "I sought clarity during a heavy Saturn Return. Her tarot spread and astrological transit insights gave me an absolute roadmap.",
+    name: "Leila M.",
+    role: "Johannesburg",
+    initials: "LM",
   },
   {
-    Icon: Wind,
-    title: "Energy Clearing Session",
-    description: "A gentle guided session to identify and release stagnant energy patterns, creating space for clarity, rest, and renewal.",
-    price: "From R450",
-  },
-  {
-    Icon: Heart,
-    title: "Spiritual Guidance & Mentorship",
-    description: "An open, unhurried conversation using tarot and intuitive listening to help you reconnect with your own inner knowing.",
-    price: "From R600",
-  },
-  {
-    Icon: Star,
-    title: "Numerology Blueprint",
-    description: "Discover the personal numbers encoded in your birthdate and name — a structural map of your natural strengths and cycles.",
-    price: "From R350",
-  },
-  {
-    Icon: Moon,
-    title: "Monthly Ritual Package",
-    description: "Three monthly sessions combining tarot, intention-setting, and reflection — a consistent space for growth at your own pace.",
-    price: "From R1 200 / month",
+    quote: "Elegant, mystical, and deeply practical. Soulful Healing bridges the gap between cosmic architecture and real-world alignment.",
+    name: "Priya S.",
+    role: "Durban",
+    initials: "PS",
   },
 ];
 
-const STEPS = [
+const services = [
   {
-    number: "01",
-    title: "Choose your reading",
-    body: "Browse the services and select the format that feels right for where you are right now. If you're unsure, the single-card reading is a gentle starting point.",
+    icon: "☼",
+    label: "Astrology & Birth Charts",
+    tagline: "Celestial Blueprinting",
+    body:
+      "Map the precise alignment of the planets at the exact moment of your birth. Discover your cosmic blueprint, elemental makeup, and your unique destiny path.",
+    accent: theme.paleSilver,
   },
   {
-    number: "02",
-    title: "Set your intention",
-    body: "Before your session, take a quiet moment to hold a question or theme in mind. There are no wrong intentions — only honest ones.",
+    icon: "✦",
+    label: "Tarot Readings",
+    tagline: "Elemental Cartomancy",
+    body:
+      "Navigate life's crossroads with tailored spreads that decode immediate energetic currents, archetypal cycles, and hidden influences surrounding your path.",
+    accent: theme.blush,
   },
   {
-    number: "03",
-    title: "Receive your insight",
-    body: "Your reading is delivered with care, warmth, and space for you to ask questions. You'll leave with something real to sit with.",
+    icon: "◎",
+    label: "Cosmic Numerology",
+    tagline: "Vibrational Geometry",
+    body:
+      "Your birth details hold key mathematical signatures. We translate these core integers to unlock your Life Path cycles, soul urges, and evolutionary timing.",
+    accent: theme.blush,
   },
 ];
 
-// =============================================================================
-// SUB-COMPONENTS
-// =============================================================================
+export default function HomePage() {
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
 
-function Navbar() {
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 border-b transition-all duration-300"
-      style={{
-        background: "rgba(247, 248, 250, 0.9)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        borderColor: `${TOKENS.silver}33`,
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
-          style={{ border: `1.5px solid ${TOKENS.rose}` }}
-        >
-          <Image
-            src="/logo.jpg"
-            alt="Soulful Healing logo"
-            fill
-            sizes="36px"
-            className="object-cover"
-            priority
+    <>
+      <style>{fonts}</style>
+
+      {/* ── NAV ── */}
+      <nav style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "1.25rem 3rem",
+        background: "rgba(247, 248, 250, 0.82)",
+        backdropFilter: "blur(16px)",
+        borderBottom: `0.5px solid ${theme.silver}40`,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <img 
+            src="/logo.JPEG" 
+            alt="Soulful Healing Logo" 
+            style={{ 
+              height: "36px", 
+              width: "36px", 
+              borderRadius: "50%", 
+              objectFit: "cover" 
+            }} 
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
           />
+          <span className="display" style={{
+            fontSize: "1.4rem",
+            fontWeight: 400,
+            letterSpacing: "0.08em",
+            color: theme.deepRose,
+          }}>
+            Soulful Healing
+          </span>
         </div>
-        <span
-          className="text-lg tracking-wide font-light select-none"
-          style={{ color: TOKENS.deepRose }}
-        >
-          Soulful Healing
-        </span>
-      </div>
 
-      <div className="hidden md:flex items-center gap-8">
-        {["Journey", "Services", "About", "Contact"].map((label) => (
-          <a
-            key={label}
-            href={`#${label.toLowerCase()}`}
-            className="text-xs tracking-widest uppercase transition-colors duration-200 hover:text-[#8B3D54]"
-            style={{ color: TOKENS.textMuted }}
-          >
-            {label}
-          </a>
-        ))}
-      </div>
-
-      <a
-        href="#contact"
-        className="text-xs tracking-widest uppercase font-medium px-5 py-2.5 rounded-full border transition-all duration-300 hover:bg-[#8B3D54] hover:text-white"
-        style={{
-          borderColor: TOKENS.rose,
-          color: TOKENS.deepRose,
-        }}
-      >
-        Book a Reading
-      </a>
-    </nav>
-  );
-}
-
-function HeroSection() {
-  return (
-    <section
-      id="hero"
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-24 pb-16"
-      style={{
-        background: `linear-gradient(160deg, ${TOKENS.white} 0%, ${TOKENS.platinum} 55%, ${TOKENS.paleSilver} 100%)`,
-      }}
-    >
-      {/* Soft Ethereal Background Orb */}
-      <div
-        className="absolute rounded-full pointer-events-none blur-3xl opacity-40"
-        style={{
-          width: "500px",
-          height: "500px",
-          background: `radial-gradient(circle, ${TOKENS.blush} 0%, ${TOKENS.rose} 100%)`,
-          top: "45%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-        }}
-      />
-
-      <motion.div
-        className="relative z-10 text-center max-w-3xl px-6"
-        variants={stagger}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.p
-          variants={fadeUp}
-          className="text-xs font-medium tracking-widest uppercase mb-6"
-          style={{ color: TOKENS.roseDark }}
-        >
-          Intuitive guidance · Held with care
-        </motion.p>
-
-        <motion.h1
-          variants={fadeUp}
-          className="font-light leading-tight mb-6 select-none"
-          style={{
-            fontSize: "clamp(2.5rem, 6vw, 4.75rem)",
-            letterSpacing: "-0.01em",
-            color: TOKENS.textDark,
-          }}
-        >
-          A quiet space to find{" "}
-          <em className="italic" style={{ color: TOKENS.deepRose }}>
-            your own clarity.
-          </em>
-        </motion.h1>
-
-        <motion.p
-          variants={fadeUp}
-          className="text-base md:text-lg font-light leading-relaxed mb-10 mx-auto"
-          style={{ color: TOKENS.textMid, maxWidth: "520px" }}
-        >
-          Personalised tarot readings and spiritual guidance offered with
-          warmth, honesty, and deep respect for your journey.
-        </motion.p>
-
-        <motion.div
-          variants={fadeUp}
-          className="flex flex-wrap items-center justify-center gap-4"
-        >
-          <a
-            href="#contact"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium tracking-widest uppercase transition-all duration-300 transform hover:-translate-y-0.5"
-            style={{
-              background: TOKENS.roseDark,
-              color: TOKENS.white,
-            }}
-          >
-            Book a Reading
-            <ArrowRight size={15} />
-          </a>
-
-          <a
-            href="#journey"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-light tracking-widest uppercase border transition-colors duration-200 hover:border-[#E8A8B5]"
-            style={{
-              borderColor: TOKENS.silver,
-              color: TOKENS.textMid,
-            }}
-          >
-            How it works
-          </a>
-        </motion.div>
-      </motion.div>
-
-      {/* Elegant Scroll Indicator */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        <p className="text-[10px] tracking-widest uppercase select-none animate-pulse" style={{ color: TOKENS.textMuted }}>
-          Explore
-        </p>
-        <div
-          className="w-px h-8"
-          style={{ background: `linear-gradient(to bottom, ${TOKENS.silver}, transparent)` }}
-        />
-      </div>
-    </section>
-  );
-}
-
-function JourneySection() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.15 });
-
-  return (
-    <section id="journey" className="py-28 px-6 md:px-12" style={{ background: TOKENS.white }}>
-      <div className="max-w-5xl mx-auto">
-        <FadeInSection className="mb-20">
-          <p className="text-xs font-medium tracking-widest uppercase mb-3" style={{ color: TOKENS.roseDark }}>
-            The journey
-          </p>
-          <h2
-            className="font-light leading-tight"
-            style={{
-              fontSize: "clamp(2rem, 4vw, 3rem)",
-              color: TOKENS.textDark,
-              maxWidth: "460px",
-            }}
-          >
-            How a session{" "}
-            <em className="italic" style={{ color: TOKENS.deepRose }}>unfolds.</em>
-          </h2>
-        </FadeInSection>
-
-        <motion.div
-          ref={ref}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
-          variants={stagger}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-        >
-          {STEPS.map((step) => (
-            <motion.div
-              key={step.number}
-              variants={fadeUp}
-              className="relative p-8 rounded-2xl border overflow-hidden"
+        <div className="nav-links" style={{ display: "flex", gap: "2.5rem" }}>
+          {["Astrology", "Tarot", "Services", "Testimonials"].map((item) => (
+            <a
+              key={item}
+              href="#"
+              className="nav-link"
               style={{
-                background: TOKENS.platinum,
-                borderColor: `${TOKENS.silver}44`,
+                fontSize: "0.8rem",
+                fontWeight: 400,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                textDecoration: "none",
+                color: theme.textMuted,
               }}
             >
-              <p
-                className="font-light mb-4 leading-none select-none opacity-20"
+              {item}
+            </a>
+          ))}
+        </div>
+
+        <button style={{
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          padding: "0.6rem 1.5rem",
+          borderRadius: "50px",
+          border: `1px solid ${theme.rose}`,
+          background: "transparent",
+          color: theme.deepRose,
+          cursor: "pointer",
+        }}>
+          Cast Your Chart
+        </button>
+      </nav>
+
+      {/* ── HERO ── */}
+      <section style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        overflow: "hidden",
+        paddingTop: "6rem",
+        background: `linear-gradient(160deg, ${theme.white} 0%, ${theme.platinum} 60%, ${theme.paleSilver} 100%)`,
+      }}>
+
+        <div className="hero-orb" style={{
+          position: "absolute",
+          width: "600px",
+          height: "600px",
+          borderRadius: "50%",
+          background: `radial-gradient(circle at 40% 40%, ${theme.blush}, ${theme.rose}44 50%, transparent 70%)`,
+          top: "50%",
+          left: "50%",
+          transform: "translate(-40%, -52%)",
+          pointerEvents: "none",
+        }} />
+
+        <div style={{
+          position: "absolute",
+          width: "160px",
+          height: "160px",
+          borderRadius: "50%",
+          border: `1px solid ${theme.silver}60`,
+          top: "18%",
+          right: "14%",
+          pointerEvents: "none",
+        }} />
+        <div style={{
+          position: "absolute",
+          width: "80px",
+          height: "80px",
+          borderRadius: "50%",
+          border: `1px solid ${theme.rose}50`,
+          bottom: "22%",
+          left: "10%",
+          pointerEvents: "none",
+        }} />
+
+        <div className="hero-content" style={{ textAlign: "center", maxWidth: "780px", padding: "0 2rem", position: "relative" }}>
+
+          <p style={{
+            fontSize: "0.7rem",
+            fontWeight: 500,
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            color: theme.roseDark,
+            marginBottom: "1.75rem",
+          }}>
+            Astrology · Tarot · Celestial Mapping
+          </p>
+
+          <h1
+            className="display hero-title"
+            style={{
+              fontSize: "5.5rem",
+              fontWeight: 300,
+              lineHeight: 1.08,
+              letterSpacing: "-0.02em",
+              color: theme.textDark,
+              marginBottom: "1.5rem",
+            }}
+          >
+            Where the cosmos
+            <br />
+            <em style={{ fontStyle: "italic", color: theme.deepRose }}>reveals your alignment.</em>
+          </h1>
+
+          <p style={{
+            fontSize: "1.05rem",
+            fontWeight: 300,
+            lineHeight: 1.75,
+            color: theme.textMid,
+            maxWidth: "540px",
+            margin: "0 auto 3rem",
+          }}>
+            Bespoke astrological interpretations, natal chart mapping, and intuitive tarot sessions designed to translate stellar transits into crystalline personal clarity.
+          </p>
+
+          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+            <button className="cta-btn" style={{
+              fontSize: "0.8rem",
+              fontWeight: 500,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              padding: "1rem 2.5rem",
+              borderRadius: "50px",
+              border: "none",
+              background: theme.roseDark,
+              color: theme.white,
+              cursor: "pointer",
+              boxShadow: `0 8px 24px ${theme.roseDark}40`,
+            }}>
+              Explore Your Chart
+            </button>
+
+            <button style={{
+              fontSize: "0.8rem",
+              fontWeight: 400,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              padding: "1rem 2.5rem",
+              borderRadius: "50px",
+              border: `1px solid ${theme.silver}`,
+              background: "transparent",
+              color: theme.textMid,
+              cursor: "pointer",
+            }}>
+              The Modalities
+            </button>
+          </div>
+
+        </div>
+
+        <div style={{
+          position: "absolute",
+          bottom: "2.5rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "0.5rem",
+        }}>
+         
+          <div style={{
+            width: "1px",
+            height: "40px",
+            background: `linear-gradient(to bottom, ${theme.silverDark}, transparent)`,
+          }} />
+        </div>
+      </section>
+
+      {/* ── SERVICES ── */}
+      <section style={{
+        padding: "8rem 3rem",
+        background: theme.white,
+      }}>
+        <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
+
+          <div style={{ marginBottom: "5rem" }}>
+            <p style={{
+              fontSize: "0.65rem",
+              fontWeight: 500,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: theme.roseDark,
+              marginBottom: "1rem",
+            }}>
+              The Modalities
+            </p>
+            <h2 className="display" style={{
+              fontSize: "3.25rem",
+              fontWeight: 300,
+              color: theme.textDark,
+              lineHeight: 1.1,
+              letterSpacing: "-0.01em",
+              maxWidth: "480px",
+            }}>
+              Three gateways into <em style={{ fontStyle: "italic", color: theme.deepRose }}>divine timing.</em>
+            </h2>
+          </div>
+
+          <div
+            className="cards-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "1.5rem",
+            }}
+          >
+            {services.map((s) => (
+              <div
+                key={s.label}
+                className="card"
                 style={{
-                  fontSize: "3.5rem",
-                  color: TOKENS.rose,
+                  background: theme.platinum,
+                  borderRadius: "20px",
+                  padding: "2.5rem 2rem",
+                  border: `1px solid ${theme.silver}50`,
+                  cursor: "pointer",
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
-                {step.number}
-              </p>
+                <div style={{
+                  position: "absolute",
+                  top: "-40px",
+                  right: "-40px",
+                  width: "120px",
+                  height: "120px",
+                  borderRadius: "50%",
+                  background: s.accent,
+                  opacity: 0.5,
+                  pointerEvents: "none",
+                }} />
 
-              <h3 className="text-lg font-medium mb-3" style={{ color: TOKENS.textDark }}>
-                {step.title}
-              </h3>
+                <div className="pillar-icon" style={{
+                  fontSize: "2.2rem",
+                  color: theme.deepRose,
+                  marginBottom: "2rem",
+                  lineHeight: 1,
+                }}>
+                  {s.icon}
+                </div>
 
-              <p className="text-sm font-light leading-relaxed" style={{ color: TOKENS.textMuted }}>
-                {step.body}
-              </p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </section>
-  );
-}
+                <p style={{
+                  fontSize: "0.6rem",
+                  fontWeight: 500,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  color: theme.roseDark,
+                  marginBottom: "0.6rem",
+                }}>
+                  {s.tagline}
+                </p>
 
-function ServicesSection() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.1 });
+                <h3 className="display" style={{
+                  fontSize: "1.6rem",
+                  fontWeight: 400,
+                  color: theme.textDark,
+                  marginBottom: "1rem",
+                  lineHeight: 1.15,
+                }}>
+                  {s.label}
+                </h3>
 
-  return (
-    <section id="services" className="py-28 px-6 md:px-12" style={{ background: TOKENS.paleSilver }}>
-      <div className="max-w-5xl mx-auto">
-        <FadeInSection className="mb-20">
-          <p className="text-xs font-medium tracking-widest uppercase mb-3" style={{ color: TOKENS.roseDark }}>
-            What&apos;s on offer
-          </p>
-          <h2
-            className="font-light leading-tight"
-            style={{
-              fontSize: "clamp(2rem, 4vw, 3rem)",
-              color: TOKENS.textDark,
-              maxWidth: "460px",
-            }}
-          >
-            Readings and sessions{" "}
-            <em className="italic" style={{ color: TOKENS.deepRose }}>for every need.</em>
-          </h2>
-        </FadeInSection>
+                <p style={{
+                  fontSize: "0.9rem",
+                  lineHeight: 1.7,
+                  color: theme.textMuted,
+                  fontWeight: 300,
+                }}>
+                  {s.body}
+                </p>
 
-        <motion.div
-          ref={ref}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6"
-          variants={stagger}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-        >
-          {SERVICES.map(({ Icon, title, description, price }) => (
-            <motion.div
-              key={title}
-              variants={fadeUp}
-              className="p-8 rounded-2xl border bg-white transition-all duration-300 hover:shadow-sm hover:border-[#E8A8B5]"
-              style={{ borderColor: `${TOKENS.silver}33` }}
-            >
-              <div
-                className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-5"
-                style={{ background: TOKENS.blush }}
-              >
-                <Icon size={18} style={{ color: TOKENS.deepRose }} />
+                <div style={{
+                  marginTop: "2rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                }}>
+                  <span style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 500,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: theme.deepRose,
+                  }}>
+                    Decode
+                  </span>
+                  <span style={{ color: theme.deepRose, fontSize: "0.8rem" }}>→</span>
+                </div>
               </div>
-
-              <h3 className="text-lg font-medium mb-2" style={{ color: TOKENS.textDark }}>
-                {title}
-              </h3>
-
-              <p className="text-sm font-light leading-relaxed mb-6" style={{ color: TOKENS.textMuted }}>
-                {description}
-              </p>
-
-              <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: `${TOKENS.silver}22` }}>
-                <span className="text-sm font-medium" style={{ color: TOKENS.deepRose }}>
-                  {price}
-                </span>
-                <span
-                  className="flex items-center gap-1 text-xs tracking-widest uppercase font-medium"
-                  style={{ color: TOKENS.roseDark }}
-                >
-                  Enquire <ArrowRight size={12} />
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-function AboutSection() {
-  return (
-    <section id="about" className="py-28 px-6 md:px-12" style={{ background: TOKENS.white }}>
-      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-        <FadeInSection className="flex justify-center md:justify-start">
-          <div className="relative w-64 h-64 md:w-72 md:h-72">
-            {/* Subtle aesthetic backdrop blur element */}
-            <div
-              className="absolute inset-0 rounded-full blur-xl opacity-30 scale-110"
-              style={{ background: TOKENS.blush }}
-            />
-            <div
-              className="relative w-full h-full rounded-full overflow-hidden border-2"
-              style={{ borderColor: `${TOKENS.rose}88` }}
-            >
-              <Image
-                src="/logo.jpg"
-                alt="Soulful Healing practitioner avatar asset"
-                fill
-                sizes="(max-width: 768px) 256px, 288px"
-                className="object-cover"
-              />
-            </div>
+            ))}
           </div>
-        </FadeInSection>
+        </div>
+      </section>
 
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-        >
-          <motion.p
-            variants={fadeUp}
-            className="text-xs font-medium tracking-widest uppercase mb-4"
-            style={{ color: TOKENS.roseDark }}
-          >
-            The practitioner
-          </motion.p>
-
-          <motion.h2
-            variants={fadeUp}
-            className="font-light leading-tight mb-6"
-            style={{
-              fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)",
-              color: TOKENS.textDark,
-            }}
-          >
-            Guided by{" "}
-            <em className="italic" style={{ color: TOKENS.deepRose }}>
-              intuition and empathy.
-            </em>
-          </motion.h2>
-
+      {/* ── CELESTIAL ALIGNMENT PILLARS (REPLACED STAT STRIP) ── */}
+      <section style={{
+        background: `linear-gradient(135deg, ${theme.blush} 0%, ${theme.paleSilver} 100%)`,
+        padding: "5rem 3rem",
+        borderTop: `1px solid ${theme.silver}40`,
+        borderBottom: `1px solid ${theme.silver}40`,
+      }}>
+        <div style={{
+          maxWidth: "1000px",
+          margin: "0 auto",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "3.5rem",
+          textAlign: "center",
+        }}>
           {[
-            "Every reading begins with listening. I believe each person arrives with their own inner wisdom already intact — what tarot offers is a mirror, a set of symbols to help surface what you already sense to be true.",
-            "My practice is built on creating a safe, unhurried space where you can show up exactly as you are. There is no judgment here — only curiosity, care, and a commitment to holding your story with respect.",
-          ].map((para, i) => (
-            <motion.p
-              key={i}
-              variants={fadeUp}
-              className="text-sm font-light leading-loose mb-4 last:mb-0"
-              style={{ color: TOKENS.textMid }}
-            >
-              {para}
-            </motion.p>
+            { symbol: "☉ ☽ ↗", title: "The Cosmic Triad", desc: "Sun, Moon & Rising Analysis" },
+            { symbol: "XII", title: "Astrological Houses", desc: "Life Spheres Deciphered" },
+            { symbol: "🜂 🜃 🜁 🜄", title: "Elemental Balance", desc: "Fire, Earth, Air & Water" },
+            { symbol: "🪐", title: "Transit Tracking", desc: "Planetary Cycles & Returns" },
+          ].map(({ symbol, title, desc }) => (
+            <div key={title} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div className="display" style={{
+                fontSize: "2.5rem",
+                fontWeight: 300,
+                color: theme.deepRose,
+                marginBottom: "0.5rem",
+                lineHeight: 1,
+                letterSpacing: "0.05em"
+              }}>
+                {symbol}
+              </div>
+              <h4 style={{
+                fontSize: "0.85rem",
+                fontWeight: 500,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: theme.textDark,
+                marginBottom: "0.25rem"
+              }}>
+                {title}
+              </h4>
+              <p style={{
+                fontSize: "0.75rem",
+                color: theme.textMid,
+                fontWeight: 300,
+                letterSpacing: "0.02em"
+              }}>
+                {desc}
+              </p>
+            </div>
           ))}
-        </motion.div>
-      </div>
-    </section>
-  );
-}
+        </div>
+      </section>
 
-function CtaSection() {
-  return (
-    <section
-      id="contact"
-      className="relative py-32 px-6 text-center overflow-hidden"
-      style={{ background: TOKENS.charcoal }}
-    >
-      <FadeInSection className="relative z-10 max-w-xl mx-auto">
-        <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: TOKENS.rose }}>
-          Begin when you&apos;re ready
+      {/* ── TESTIMONIALS ── */}
+      <section style={{
+        padding: "8rem 3rem",
+        background: theme.platinum,
+      }}>
+        <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
+
+          <div style={{ marginBottom: "4rem" }}>
+            <p style={{
+              fontSize: "0.65rem",
+              fontWeight: 500,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: theme.roseDark,
+              marginBottom: "1rem",
+            }}>
+              Testimonials
+            </p>
+            <h2 className="display" style={{
+              fontSize: "3rem",
+              fontWeight: 300,
+              color: theme.textDark,
+              lineHeight: 1.1,
+              letterSpacing: "-0.01em",
+            }}>
+              Words from those <em style={{ fontStyle: "italic", color: theme.deepRose }}>guided.</em>
+            </h2>
+          </div>
+
+          <div className="testimonials-grid" style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "1.5rem",
+            marginBottom: "2.5rem",
+          }}>
+            {testimonials.map((t, i) => (
+              <div
+                key={t.name}
+                style={{
+                  background: theme.white,
+                  borderRadius: "20px",
+                  padding: "2rem",
+                  border: `1px solid ${i === activeTestimonial ? theme.rose : theme.silver + "40"}`,
+                  transition: "border-color 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => setActiveTestimonial(i)}
+              >
+                <div style={{ display: "flex", gap: "3px", marginBottom: "1.25rem" }}>
+                  {[...Array(5)].map((_, si) => (
+                    <span key={si} style={{ color: theme.roseDark, fontSize: "0.75rem" }}>★</span>
+                  ))}
+                </div>
+
+                <p className="display" style={{
+                  fontSize: "1.05rem",
+                  fontWeight: 300,
+                  fontStyle: "italic",
+                  color: theme.textMid,
+                  lineHeight: 1.65,
+                  marginBottom: "1.75rem",
+                }}>
+                  "{t.quote}"
+                </p>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  <div style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    background: `linear-gradient(135deg, ${theme.rose}, ${theme.blush})`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.65rem",
+                    fontWeight: 600,
+                    color: theme.deepRose,
+                    letterSpacing: "0.05em",
+                  }}>
+                    {t.initials}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: "0.85rem", fontWeight: 500, color: theme.textDark, lineHeight: 1 }}>
+                      {t.name}
+                    </p>
+                    <p style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>
+                      {t.role}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+            {testimonials.map((_, i) => (
+              <button
+                key={i}
+                className={`testimonial-dot${i === activeTestimonial ? " active" : ""}`}
+                onClick={() => setActiveTestimonial(i)}
+                style={{
+                  height: "6px",
+                  width: i === activeTestimonial ? "24px" : "6px",
+                  borderRadius: "3px",
+                  border: "none",
+                  background: i === activeTestimonial ? theme.deepRose : theme.silver,
+                  padding: 0,
+                }}
+                aria-label={`Testimonial ${i + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section style={{
+        padding: "8rem 3rem",
+        background: theme.textDark,
+        position: "relative",
+        overflow: "hidden",
+        textAlign: "center",
+      }}>
+
+        <div style={{
+          position: "absolute",
+          width: "500px",
+          height: "500px",
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${theme.rose}22, transparent 70%)`,
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          pointerEvents: "none",
+        }} />
+
+        <div style={{ position: "relative", maxWidth: "600px", margin: "0 auto" }}>
+          <p style={{
+            fontSize: "0.65rem",
+            fontWeight: 500,
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            color: theme.rose,
+            marginBottom: "1.5rem",
+          }}>
+            Consult the Stars
+          </p>
+
+          <h2 className="display" style={{
+            fontSize: "3.75rem",
+            fontWeight: 300,
+            color: theme.white,
+            lineHeight: 1.1,
+            letterSpacing: "-0.02em",
+            marginBottom: "1.5rem",
+          }}>
+            Ready for your <em style={{ fontStyle: "italic", color: theme.rose }}>reading?</em>
+          </h2>
+
+          <p style={{
+            fontSize: "1rem",
+            fontWeight: 300,
+            lineHeight: 1.75,
+            color: `${theme.silver}CC`,
+            marginBottom: "3rem",
+          }}>
+            Enter your natal metrics, configure your alignment parameters, and book an intimate, premium reading configured entirely around your planetary transits.
+          </p>
+
+          <button className="cta-btn" style={{
+            fontSize: "0.8rem",
+            fontWeight: 500,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            padding: "1.1rem 3rem",
+            borderRadius: "50px",
+            border: "none",
+            background: theme.roseDark,
+            color: theme.white,
+            cursor: "pointer",
+            boxShadow: `0 8px 32px ${theme.deepRose}60`,
+          }}>
+            Initiate Alignment Session
+          </button>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer style={{
+        background: theme.textDark,
+        borderTop: `1px solid #ffffff10`,
+        padding: "2.5rem 3rem",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: "1rem",
+      }}>
+        <span className="display" style={{
+          fontSize: "1.1rem",
+          fontWeight: 300,
+          color: `${theme.white}60`,
+          letterSpacing: "0.06em",
+        }}>
+          Soulful Healing
+        </span>
+        <p style={{ fontSize: "0.72rem", color: `${theme.white}30`, letterSpacing: "0.08em" }}>
+          © 2026 · Celestial Architecture · All rights reserved
         </p>
-
-        <h2
-          className="font-light leading-tight mb-8"
-          style={{
-            fontSize: "clamp(2rem, 5vw, 3.5rem)",
-            color: TOKENS.white,
-          }}
-        >
-          Your path{" "}
-          <em className="italic" style={{ color: TOKENS.rose }}>
-            is uniquely yours.
-          </em>
-        </h2>
-
-        <a
-          href="mailto:hello@example.com"
-          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium tracking-widest uppercase bg-white text-[#2D1B23] transition-transform duration-300 hover:scale-[1.02]"
-        >
-          Get In Touch
-        </a>
-      </FadeInSection>
-    </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer
-      className="py-8 text-center text-[11px] tracking-wider border-t"
-      style={{
-        background: TOKENS.charcoal,
-        color: TOKENS.textMuted,
-        borderColor: "#3D2A33",
-      }}
-    >
-      <p>&copy; {new Date().getFullYear()} Soulful Healing. All rights reserved.</p>
-    </footer>
-  );
-}
-
-// =============================================================================
-// MAIN ENTRY WRAPPER EXPORT
-// =============================================================================
-export default function Page() {
-  return (
-    <div className="antialiased" style={{ background: TOKENS.platinum, minHeight: "100vh" }}>
-      <Navbar />
-      <HeroSection />
-      <JourneySection />
-      <ServicesSection />
-      <AboutSection />
-      <CtaSection />
-      <Footer />
-    </div>
+        <div style={{ display: "flex", gap: "2rem" }}>
+          {["Privacy", "Terms", "Ephemeris"].map((l) => (
+            <a key={l} href="#" style={{
+              fontSize: "0.72rem",
+              color: `${theme.white}40`,
+              textDecoration: "none",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+            }}>
+              {l}
+            </a>
+          ))}
+        </div>
+      </footer>
+    </>
   );
 }

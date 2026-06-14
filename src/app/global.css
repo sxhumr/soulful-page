@@ -1,0 +1,82 @@
+/* =============================================================================
+   src/app/globals.css
+   =============================================================================
+   This file is imported once in src/app/layout.jsx (or layout.js).
+   It handles three things that Tailwind and inline styles cannot:
+     1. Google Fonts @import (must be at the very top of a CSS file)
+     2. @keyframes for the hero orb pulse animation
+     3. prefers-reduced-motion accessibility override
+   ============================================================================= */
+
+/* ── 1. Google Fonts ─────────────────────────────────────────────────────────
+   Cormorant Garant: the elegant serif used for all display headings.
+   Inter: the clean sans-serif used for all body text and UI labels.
+   We load only the weights we actually use to keep the network payload small. */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap');
+
+/* ── 2. Tailwind base layers ─────────────────────────────────────────────────
+   These three lines are required for Tailwind CSS to work. They inject
+   Tailwind's base reset, component classes, and utility classes. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── 3. Base resets ──────────────────────────────────────────────────────────
+   box-sizing: border-box means padding and border are included in an
+   element's total width/height. This prevents layout surprises. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Smooth scroll: clicking anchor links like #journey scrolls smoothly
+   instead of jumping instantly to the target section. */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased; /* Crisper text rendering on Mac/iOS */
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── 4. Hero orb pulse animation ─────────────────────────────────────────────
+   This @keyframes block defines the breathing glow behind the hero headline.
+   The .orb-pulse class (applied in page.jsx) references it by name.
+   We animate both opacity (visibility) and scale (size) simultaneously. */
+@keyframes orb-pulse {
+  0%, 100% {
+    opacity: 0.18;
+    transform: translate(-42%, -52%) scale(1);
+  }
+  50% {
+    opacity: 0.30;
+    transform: translate(-42%, -52%) scale(1.05);
+  }
+}
+
+.orb-pulse {
+  animation: orb-pulse 6s ease-in-out infinite;
+}
+
+/* ── 5. Accessibility: reduced motion ────────────────────────────────────────
+   Some users enable "Reduce Motion" in their OS accessibility settings
+   because animations trigger vestibular disorders or migraines.
+   This media query respects that preference by cutting all animation
+   durations to near-zero, making transitions effectively instant. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .orb-pulse {
+    animation: none;
+  }
+}

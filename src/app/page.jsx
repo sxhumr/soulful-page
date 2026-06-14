@@ -2,118 +2,120 @@
 // src/app/page.jsx — Soulful Healing · Single-Page Application
 // =============================================================================
 //
-// HOW THIS FILE IS STRUCTURED
+// PRODUCTION CHANGES FROM PREVIOUS VERSION
 // ─────────────────────────────────────────────────────────────────────────────
-// Next.js App Router pages are just React components exported as default.
-// Because we use "framer-motion" (which needs browser APIs like window),
-// we mark the whole file with "use client" at the very top. Without this
-// directive, Next.js would try to render the component on the server, where
-// framer-motion's animation hooks don't exist and the build would crash.
+// 1. Removed <GlobalStyles> component entirely.
+//    The old code used <style jsx global> which requires the "styled-jsx"
+//    package — not included in Next.js 15 App Router by default. All global
+//    styles now live in src/app/globals.css (imported via layout.jsx).
+//
+// 2. Added sizes prop to every next/image with fill.
+//    Next.js requires this to generate the correct srcset for responsive
+//    images. Without it the build logs a warning and images may load at
+//    wrong resolutions. The value tells the browser how wide the image
+//    will actually be rendered at each breakpoint.
+//
+// 3. Logo filename standardised to lowercase "logo.jpeg".
+//    Vercel runs on Linux, where filenames are case-sensitive.
+//    "logo.JPEG" and "logo.jpeg" are treated as different files.
+//    IMPORTANT: rename your file in /public to "logo.jpeg" (all lowercase).
 //
 // SECTIONS (in render order):
-//   1. <Navbar>         — Fixed logo + nav + CTA
-//   2. <HeroSection>    — Full-screen welcome + headline + CTA
-//   3. <JourneySection> — "How it works" three-step flow
-//   4. <ServicesSection>— Service cards grid with icons + pricing
-//   5. <AboutSection>   — Practitioner philosophy bio
-//   6. <CtaSection>     — Final booking encouragement
-//   7. <Footer>         — Links + copyright
+//   1. <Navbar>          — Fixed logo + nav + CTA
+//   2. <HeroSection>     — Full-screen welcome + headline + CTA
+//   3. <JourneySection>  — "How it works" three-step flow
+//   4. <ServicesSection> — Service cards grid with icons + pricing
+//   5. <AboutSection>    — Practitioner philosophy bio
+//   6. <CtaSection>      — Final booking encouragement
+//   7. <Footer>          — Links + copyright
 // =============================================================================
 
-"use client"; // Required for framer-motion and any useState/useEffect hooks
+"use client"; // Required: framer-motion uses browser APIs unavailable on the server
 
 // ─── External library imports ─────────────────────────────────────────────────
-import { motion, useInView } from "framer-motion"; // Animation primitives
-import { useRef } from "react";                     // Needed for useInView refs
-import Image from "next/image";                     // Next.js optimised image component
+import { motion, useInView } from "framer-motion"; // Scroll animations
+import { useRef } from "react";                     // For useInView refs
+import Image from "next/image";                     // Next.js optimised image
 import {
-  Sparkles,    // Tarot / intuition icon
-  Wind,        // Energy healing icon
-  BookOpen,    // Guidance / readings icon
-  Star,        // Step decorators
-  Heart,       // Bio section warmth
-  ArrowRight,  // CTA arrows
-  Moon,        // Footer / ambient branding
+  Sparkles, // Tarot / intuition
+  Wind,     // Energy healing
+  BookOpen, // Full readings
+  Star,     // Numerology
+  Heart,    // Bio / warmth
+  ArrowRight,
+  Moon,     // Monthly package
 } from "lucide-react";
 
 // =============================================================================
 // DESIGN TOKENS
 // =============================================================================
-// Keeping colours and fonts in one place means you only change them here
-// if you ever want to retheme the site. Think of this as your style guide.
-//
-// Tailwind does not know about arbitrary hex values by default, so we use
-// inline style={{ color: TOKENS.deepRose }} when we need exact values, and
-// Tailwind utility classes (text-pink-200, bg-white, etc.) where approximate
-// Tailwind colours are close enough.
+// One place to change any colour across the entire site.
+// We use these via inline style={{ color: TOKENS.deepRose }} because Tailwind
+// only knows its own named colours, not our custom hex values.
 // =============================================================================
 
 const TOKENS = {
-  // Backgrounds
-  platinum:   "#F7F8FA", // Near-white cool silver — main page background
-  paleSilver: "#EDF0F4", // Section alternating bg
-  blush:      "#F9D4DC", // Soft pink for accents / glows
-  rose:       "#E8A8B5", // Mid-pink for borders, pills
+  // ── Backgrounds
+  platinum:   "#F7F8FA", // Near-white cool silver — main page bg
+  paleSilver: "#EDF0F4", // Alternating section bg
+  blush:      "#F9D4DC", // Soft pink — glows, accents, icon backgrounds
+  rose:       "#E8A8B5", // Mid-pink — borders, pills, decorative rings
   white:      "#FFFFFF",
-  charcoal:   "#2D1B23", // Dark plum-charcoal for footer + dark sections
+  charcoal:   "#2D1B23", // Deep plum-charcoal — footer + CTA dark section
 
-  // Text
-  deepRose:  "#8B3D54", // Primary accent — buttons, headings emphasis
-  roseDark:  "#C47F92", // Secondary accent — labels, eyebrows
-  textDark:  "#2D1B23", // Body headings
-  textMid:   "#6B4D57", // Body paragraph text
-  textMuted: "#9B8089", // Secondary / muted labels
+  // ── Text
+  deepRose:  "#8B3D54", // Primary accent — buttons, italic heading emphasis
+  roseDark:  "#C47F92", // Secondary accent — eyebrow labels
+  textDark:  "#2D1B23", // Main headings
+  textMid:   "#6B4D57", // Body paragraph copy
+  textMuted: "#9B8089", // Secondary / helper text
 
-  // Utility
+  // ── Utility
   silver:     "#C8CDD6",
   silverDark: "#9BA3AF",
 };
 
 // =============================================================================
-// ANIMATION HELPERS
+// ANIMATION VARIANTS (framer-motion)
 // =============================================================================
-// Instead of repeating animation config everywhere, we define reusable
-// "variants" — plain objects that framer-motion reads to know what to animate.
+// "variants" are named animation states. We define them once here and
+// reference them by name throughout the file instead of repeating the
+// same config on every animated element.
 //
-// fadeUp: element starts 28px below its final position and invisible (opacity 0),
-//         then fades in and slides up to natural position (opacity 1, y: 0).
-//
-// stagger: a parent variant that staggers its children by 0.12s each.
-//          The "staggerChildren" property belongs on the parent, and each
-//          child will use whichever variant it's given (usually "fadeUp").
+// fadeUp:  element slides up 28px and fades in over 0.65s
+// stagger: parent variant that delays each child by 0.12s in sequence
 // =============================================================================
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
+  hidden:  { opacity: 0, y: 28 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] }, // Custom cubic-bezier: feels gentle
+    // Custom cubic-bezier easing — feels soft and organic, not mechanical
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
   },
 };
 
 const stagger = {
-  hidden: {},
+  hidden:  {},
   visible: { transition: { staggerChildren: 0.12 } },
 };
 
 // =============================================================================
-// HELPER COMPONENT: <FadeInSection>
+// HELPER: <FadeInSection>
 // =============================================================================
-// Wraps any block of content in a <motion.div> that triggers its animation
-// when it enters the viewport. This is the "scroll-reveal" pattern.
+// A reusable scroll-reveal wrapper. Attach it around any block and it will
+// animate in when that block enters the viewport.
 //
-// How useInView works:
-//   1. We attach a ref to the element.
-//   2. useInView watches that ref and returns true once 20% of the element
-//      is visible on screen (threshold: 0.2).
-//   3. "once: true" means the animation plays only the first time — it won't
-//      re-animate if you scroll past and back.
+// How it works step by step:
+//   1. useRef() creates a reference object we attach to the DOM element
+//   2. useInView() watches that element — returns true once 20% is visible
+//   3. We switch the motion.div between "hidden" and "visible" based on that
+//   4. once: true means it won't replay when you scroll back past it
 // =============================================================================
 
 function FadeInSection({ children, className = "", delay = 0 }) {
   const ref = useRef(null);
-  // useInView returns a boolean — true when the element is in the viewport
   const isInView = useInView(ref, { once: true, amount: 0.2 });
 
   return (
@@ -122,7 +124,6 @@ function FadeInSection({ children, className = "", delay = 0 }) {
       variants={fadeUp}
       initial="hidden"
       animate={isInView ? "visible" : "hidden"}
-      // delay lets individual elements inside a section stagger manually
       transition={{ delay }}
       className={className}
     >
@@ -134,9 +135,8 @@ function FadeInSection({ children, className = "", delay = 0 }) {
 // =============================================================================
 // DATA: SERVICES
 // =============================================================================
-// Defining data as a plain array outside the component keeps the JSX clean
-// and makes it easy to add/remove services without touching layout code.
-// Each object has: icon (a Lucide component), title, description, price.
+// Defined outside the component so the array is created once, not on
+// every render. Makes the JSX below much easier to read and maintain.
 // =============================================================================
 
 const SERVICES = [
@@ -187,38 +187,34 @@ const SERVICES = [
 // =============================================================================
 // DATA: JOURNEY STEPS
 // =============================================================================
-// The "How it works" section is a genuine sequence (1 → 2 → 3), so numbered
-// steps here are appropriate — the order matters and carries meaning.
+// A genuine sequence (step 1 must happen before step 2), so numbered
+// markers are appropriate here — the order carries real meaning.
 // =============================================================================
 
 const STEPS = [
   {
     number: "01",
     title: "Choose your reading",
-    body:
-      "Browse the services and select the format that feels right for where you are right now. If you're unsure, the single-card reading is a gentle starting point.",
+    body: "Browse the services and select the format that feels right for where you are right now. If you're unsure, the single-card reading is a gentle starting point.",
   },
   {
     number: "02",
     title: "Set your intention",
-    body:
-      "Before your session, take a quiet moment to hold a question or theme in mind. There are no wrong intentions — only honest ones.",
+    body: "Before your session, take a quiet moment to hold a question or theme in mind. There are no wrong intentions — only honest ones.",
   },
   {
     number: "03",
     title: "Receive your insight",
-    body:
-      "Your reading is delivered with care, warmth, and space for you to ask questions. You'll leave with something real to sit with.",
+    body: "Your reading is delivered with care, warmth, and space for you to ask questions. You'll leave with something real to sit with.",
   },
 ];
 
 // =============================================================================
 // COMPONENT: <Navbar>
 // =============================================================================
-// A fixed navigation bar at the top of the page. "fixed top-0" keeps it
-// visible as you scroll. "backdrop-blur-md bg-white/80" creates the frosted-
-// glass effect — the nav is slightly transparent and blurs what's behind it.
-// "z-50" ensures it sits above all other page content.
+// Fixed to the top of the viewport so it stays visible while scrolling.
+// The frosted-glass effect comes from background with opacity + backdropFilter.
+// z-50 (z-index: 50) ensures it sits above all page sections.
 // =============================================================================
 
 function Navbar() {
@@ -228,26 +224,29 @@ function Navbar() {
       style={{
         background: "rgba(247, 248, 250, 0.88)",
         backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)", // Required for Safari support
         borderBottom: `0.5px solid ${TOKENS.silver}55`,
       }}
     >
-      {/* ── Logo + Brand name ───────────────────────────────────────────── */}
-      {/* 
-        Next.js <Image> requires a width and height (in pixels) for static
-        images. Since our logo is circular and small in the nav, 40×40 works.
-        The src path "/logo.JPEG" assumes you've placed logo.JPEG inside
-        the /public folder at the root of your Next.js project.
-        public/logo.JPEG → accessible at URL /logo.JPEG
+      {/* ── Logo + brand name ─────────────────────────────────────────── */}
+      {/*
+        IMPORTANT: Rename your file from logo.JPEG to logo.jpeg in /public.
+        Linux (Vercel's server OS) treats these as different filenames.
+        Next.js <Image> with fill needs a sized parent container.
+        sizes="36px" tells the browser this image renders at 36px wide.
       */}
       <div className="flex items-center gap-3">
-        <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
-             style={{ border: `1.5px solid ${TOKENS.rose}` }}>
+        <div
+          className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
+          style={{ border: `1.5px solid ${TOKENS.rose}` }}
+        >
           <Image
-            src="/logo.JPEG"
+            src="/logo.jpeg"
             alt="Soulful Healing logo"
-            fill               // fill = stretch to fill the parent container
-            className="object-cover"  // object-cover = no squashing, crops to fit
-            priority           // priority = preload this image (important for LCP)
+            fill
+            sizes="36px"
+            className="object-cover"
+            priority // Preload: this image is visible on first paint (above the fold)
           />
         </div>
         <span
@@ -258,8 +257,8 @@ function Navbar() {
         </span>
       </div>
 
-      {/* ── Desktop nav links ────────────────────────────────────────────── */}
-      {/* hidden md:flex — hidden on mobile, shown as flex row on md and above */}
+      {/* ── Desktop nav links ─────────────────────────────────────────── */}
+      {/* hidden md:flex = hidden on small screens, visible as a row on md+ */}
       <div className="hidden md:flex items-center gap-8">
         {["Journey", "Services", "About", "Contact"].map((label) => (
           <a
@@ -267,23 +266,23 @@ function Navbar() {
             href={`#${label.toLowerCase()}`}
             className="text-xs tracking-widest uppercase transition-colors duration-200"
             style={{ color: TOKENS.textMuted }}
-            // Inline hover is not possible in JSX; Tailwind hover: classes handle it
-            onMouseEnter={(e) => (e.target.style.color = TOKENS.deepRose)}
-            onMouseLeave={(e) => (e.target.style.color = TOKENS.textMuted)}
+            onMouseEnter={(e) => (e.currentTarget.style.color = TOKENS.deepRose)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = TOKENS.textMuted)}
           >
             {label}
           </a>
         ))}
       </div>
 
-      {/* ── CTA button ───────────────────────────────────────────────────── */}
+      {/* ── Book CTA ──────────────────────────────────────────────────── */}
       <a
         href="#contact"
-        className="text-xs tracking-widest uppercase font-medium px-5 py-2.5 rounded-full transition-all duration-200"
+        className="text-xs tracking-widest uppercase font-medium px-5 py-2.5 rounded-full"
         style={{
           border: `1px solid ${TOKENS.rose}`,
           color: TOKENS.deepRose,
           background: "transparent",
+          transition: "background 0.2s ease, color 0.2s ease, border-color 0.2s ease",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = TOKENS.deepRose;
@@ -305,9 +304,9 @@ function Navbar() {
 // =============================================================================
 // COMPONENT: <HeroSection>
 // =============================================================================
-// Full-viewport-height welcome section. "min-h-screen" = at least 100vh tall.
-// The orb behind the headline is a decorative div with a radial-gradient and
-// a pulsing animation defined via a CSS @keyframes in <GlobalStyles>.
+// min-h-screen = fills the full viewport height on load.
+// The decorative orb uses the .orb-pulse CSS class defined in globals.css.
+// The headline and buttons animate in via framer-motion stagger on page load.
 // =============================================================================
 
 function HeroSection() {
@@ -319,11 +318,11 @@ function HeroSection() {
         background: `linear-gradient(160deg, ${TOKENS.white} 0%, ${TOKENS.platinum} 55%, ${TOKENS.paleSilver} 100%)`,
       }}
     >
-      {/* ── Decorative ambient orb ──────────────────────────────────────── */}
-      {/* 
-        This is the "signature" visual element of the design — a glowing blush
-        circle that sits behind the text. It pulses gently via CSS animation.
-        "pointer-events-none" means mouse clicks pass through it to elements below.
+      {/* ── Signature decorative orb ──────────────────────────────────── */}
+      {/*
+        This glowing blush circle is the visual signature of the design.
+        The animation is defined in globals.css under .orb-pulse.
+        pointer-events-none = clicks pass through it to elements underneath.
       */}
       <div
         className="orb-pulse absolute rounded-full pointer-events-none"
@@ -337,7 +336,7 @@ function HeroSection() {
         }}
       />
 
-      {/* Small decorative ring — top-right */}
+      {/* Decorative ring — top right */}
       <div
         className="absolute rounded-full pointer-events-none"
         style={{
@@ -349,7 +348,7 @@ function HeroSection() {
         }}
       />
 
-      {/* Small decorative ring — bottom-left */}
+      {/* Decorative ring — bottom left */}
       <div
         className="absolute rounded-full pointer-events-none"
         style={{
@@ -361,11 +360,12 @@ function HeroSection() {
         }}
       />
 
-      {/* ── Hero text content ────────────────────────────────────────────── */}
-      {/* 
-        motion.div with fadeUp variant: this entire block fades up on load.
-        "initial" = start state. "animate" = end state. We pass the variant
-        names ("hidden", "visible") from our TOKENS above.
+      {/* ── Hero text ─────────────────────────────────────────────────── */}
+      {/*
+        variants={stagger} on the parent means each direct child that also
+        has variants={fadeUp} will animate in 0.12s after the previous one.
+        initial="hidden" + animate="visible" triggers the whole sequence
+        immediately on page load (not scroll-triggered — hero is always visible).
       */}
       <motion.div
         className="relative z-10 text-center max-w-3xl px-6"
@@ -373,7 +373,6 @@ function HeroSection() {
         initial="hidden"
         animate="visible"
       >
-        {/* Eyebrow label */}
         <motion.p
           variants={fadeUp}
           className="text-xs font-medium tracking-widest uppercase mb-7"
@@ -382,13 +381,13 @@ function HeroSection() {
           Intuitive guidance · Held with care
         </motion.p>
 
-        {/* Main headline */}
         <motion.h1
           variants={fadeUp}
           className="font-light leading-tight mb-6"
           style={{
             fontFamily: "'Cormorant Garant', serif",
-            fontSize: "clamp(3rem, 7vw, 5.5rem)", // Fluid type: scales with viewport
+            // clamp(min, preferred, max) — fluid font size that scales with viewport
+            fontSize: "clamp(3rem, 7vw, 5.5rem)",
             letterSpacing: "-0.02em",
             color: TOKENS.textDark,
           }}
@@ -399,7 +398,6 @@ function HeroSection() {
           </em>
         </motion.h1>
 
-        {/* Subheadline / supporting copy */}
         <motion.p
           variants={fadeUp}
           className="text-base md:text-lg font-light leading-relaxed mb-10 mx-auto"
@@ -409,7 +407,6 @@ function HeroSection() {
           warmth, honesty, and deep respect for your journey.
         </motion.p>
 
-        {/* CTA buttons */}
         <motion.div
           variants={fadeUp}
           className="flex flex-wrap items-center justify-center gap-4"
@@ -417,11 +414,12 @@ function HeroSection() {
           {/* Primary CTA */}
           <a
             href="#contact"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium tracking-widest uppercase transition-all duration-250"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium tracking-widest uppercase"
             style={{
               background: TOKENS.roseDark,
               color: TOKENS.white,
               boxShadow: `0 8px 24px ${TOKENS.roseDark}44`,
+              transition: "background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = TOKENS.deepRose;
@@ -441,8 +439,12 @@ function HeroSection() {
           {/* Secondary ghost button */}
           <a
             href="#journey"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-light tracking-widest uppercase transition-colors duration-200"
-            style={{ border: `1px solid ${TOKENS.silver}`, color: TOKENS.textMid }}
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-light tracking-widest uppercase"
+            style={{
+              border: `1px solid ${TOKENS.silver}`,
+              color: TOKENS.textMid,
+              transition: "border-color 0.2s ease",
+            }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = TOKENS.rose)}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = TOKENS.silver)}
           >
@@ -451,17 +453,12 @@ function HeroSection() {
         </motion.div>
       </motion.div>
 
-      {/* ── Scroll nudge ─────────────────────────────────────────────────── */}
-      <div
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-      >
-        <p
-          className="text-xs tracking-widest uppercase"
-          style={{ color: TOKENS.textMuted }}
-        >
+      {/* ── Scroll nudge ──────────────────────────────────────────────── */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+        <p className="text-xs tracking-widest uppercase" style={{ color: TOKENS.textMuted }}>
           Explore
         </p>
-        {/* Animated thin vertical line */}
+        {/* Animated vertical line pulses to hint at scrolling */}
         <motion.div
           className="w-px h-10"
           style={{ background: `linear-gradient(to bottom, ${TOKENS.silverDark}, transparent)` }}
@@ -476,29 +473,21 @@ function HeroSection() {
 // =============================================================================
 // COMPONENT: <JourneySection>
 // =============================================================================
-// Shows three numbered steps in a clean responsive grid. On mobile (< md),
-// the grid collapses to a single column. Each card fades in from below as
-// it enters the viewport, staggered so they don't all appear at once.
+// Three cards in a responsive grid. On mobile (<md) they stack vertically.
+// Cards fade in with a stagger when the grid enters the viewport.
 // =============================================================================
 
 function JourneySection() {
+  // ref attaches to the grid element so useInView can watch it
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.15 });
 
   return (
-    <section
-      id="journey"
-      className="py-28 px-6 md:px-12"
-      style={{ background: TOKENS.white }}
-    >
+    <section id="journey" className="py-28 px-6 md:px-12" style={{ background: TOKENS.white }}>
       <div className="max-w-5xl mx-auto">
 
-        {/* Section header */}
         <FadeInSection className="mb-20">
-          <p
-            className="text-xs font-medium tracking-widest uppercase mb-4"
-            style={{ color: TOKENS.roseDark }}
-          >
+          <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: TOKENS.roseDark }}>
             The journey
           </p>
           <h2
@@ -511,17 +500,13 @@ function JourneySection() {
             }}
           >
             How a session{" "}
-            <em style={{ fontStyle: "italic", color: TOKENS.deepRose }}>
-              unfolds.
-            </em>
+            <em style={{ fontStyle: "italic", color: TOKENS.deepRose }}>unfolds.</em>
           </h2>
         </FadeInSection>
 
-        {/* Steps grid */}
-        {/* 
-          motion.div with stagger variant: this parent staggers each child's
-          fadeUp animation by 0.12s. The ref + isInView combination means
-          the animation only plays when this grid scrolls into view.
+        {/*
+          The ref goes on this grid (the parent), and isInView triggers when
+          it scrolls into view. The stagger variant then delays each child card.
         */}
         <motion.div
           ref={ref}
@@ -540,34 +525,28 @@ function JourneySection() {
                 border: `1px solid ${TOKENS.silver}50`,
               }}
             >
-              {/* Large faint step number — purely decorative context */}
+              {/* Large faint step number — visual anchor, not interactive */}
               <p
-                className="font-light mb-6 leading-none"
+                className="font-light mb-6 leading-none select-none"
                 style={{
                   fontFamily: "'Cormorant Garant', serif",
                   fontSize: "4rem",
-                  color: TOKENS.rose,          // Soft pink, not distracting
+                  color: TOKENS.rose,
                   opacity: 0.6,
                 }}
               >
                 {step.number}
               </p>
 
-              <h3
-                className="text-xl font-medium mb-3"
-                style={{ color: TOKENS.textDark }}
-              >
+              <h3 className="text-xl font-medium mb-3" style={{ color: TOKENS.textDark }}>
                 {step.title}
               </h3>
 
-              <p
-                className="text-sm font-light leading-relaxed"
-                style={{ color: TOKENS.textMuted }}
-              >
+              <p className="text-sm font-light leading-relaxed" style={{ color: TOKENS.textMuted }}>
                 {step.body}
               </p>
 
-              {/* Decorative blush blob — top right corner */}
+              {/* Blush corner blob — decorative only */}
               <div
                 className="absolute top-0 right-0 rounded-full pointer-events-none"
                 style={{
@@ -589,10 +568,10 @@ function JourneySection() {
 // =============================================================================
 // COMPONENT: <ServicesSection>
 // =============================================================================
-// A 2-column grid on desktop, 1-column on mobile. Each service card shows:
-// - A Lucide icon in a soft blush pill
-// - Title, description, and price
-// Framer-motion stagger plays when the grid scrolls into view.
+// 2-column grid on desktop, 1-column on mobile. Each card:
+//   - Has a Lucide icon in a blush badge
+//   - Lifts 4px on hover with a rose border
+//   - Shows title, description, and price
 // =============================================================================
 
 function ServicesSection() {
@@ -600,20 +579,12 @@ function ServicesSection() {
   const isInView = useInView(ref, { once: true, amount: 0.1 });
 
   return (
-    <section
-      id="services"
-      className="py-28 px-6 md:px-12"
-      style={{ background: TOKENS.paleSilver }}
-    >
+    <section id="services" className="py-28 px-6 md:px-12" style={{ background: TOKENS.paleSilver }}>
       <div className="max-w-5xl mx-auto">
 
-        {/* Section header */}
         <FadeInSection className="mb-20">
-          <p
-            className="text-xs font-medium tracking-widest uppercase mb-4"
-            style={{ color: TOKENS.roseDark }}
-          >
-            What's on offer
+          <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: TOKENS.roseDark }}>
+            What&apos;s on offer
           </p>
           <h2
             className="font-light leading-tight"
@@ -625,13 +596,10 @@ function ServicesSection() {
             }}
           >
             Readings and sessions{" "}
-            <em style={{ fontStyle: "italic", color: TOKENS.deepRose }}>
-              for every need.
-            </em>
+            <em style={{ fontStyle: "italic", color: TOKENS.deepRose }}>for every need.</em>
           </h2>
         </FadeInSection>
 
-        {/* Services grid */}
         <motion.div
           ref={ref}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
@@ -639,77 +607,60 @@ function ServicesSection() {
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
         >
-          {SERVICES.map((service) => {
-            // We destructure the Icon component so we can render it as JSX
-            const { Icon, title, description, price } = service;
-
-            return (
-              <motion.div
-                key={title}
-                variants={fadeUp}
-                className="group p-8 rounded-2xl transition-all duration-300"
-                style={{
-                  background: TOKENS.white,
-                  border: `1px solid ${TOKENS.silver}50`,
-                }}
-                // Hover: lift the card and show a rose border
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow = `0 16px 48px ${TOKENS.deepRose}14`;
-                  e.currentTarget.style.borderColor = TOKENS.rose;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                  e.currentTarget.style.borderColor = `${TOKENS.silver}50`;
-                }}
+          {SERVICES.map(({ Icon, title, description, price }) => (
+            <motion.div
+              key={title}
+              variants={fadeUp}
+              className="p-8 rounded-2xl"
+              style={{
+                background: TOKENS.white,
+                border: `1px solid ${TOKENS.silver}50`,
+                transition: "transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = `0 16px 48px ${TOKENS.deepRose}14`;
+                e.currentTarget.style.borderColor = TOKENS.rose;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+                e.currentTarget.style.borderColor = `${TOKENS.silver}50`;
+              }}
+            >
+              {/* Icon badge */}
+              <div
+                className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-5"
+                style={{ background: TOKENS.blush }}
               >
-                {/* Icon inside a soft blush pill */}
-                <div
-                  className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-5"
-                  style={{ background: TOKENS.blush }}
-                >
-                  {/* 
-                    Lucide icons are React components. We pass size and color as props.
-                    size={18} = 18px × 18px SVG. 
-                  */}
-                  <Icon size={18} style={{ color: TOKENS.deepRose }} />
-                </div>
+                {/*
+                  Lucide icons are standard React components.
+                  size={18} sets the SVG width and height to 18px.
+                */}
+                <Icon size={18} style={{ color: TOKENS.deepRose }} />
+              </div>
 
-                {/* Service title */}
-                <h3
-                  className="text-lg font-medium mb-2"
-                  style={{ color: TOKENS.textDark }}
-                >
-                  {title}
-                </h3>
+              <h3 className="text-lg font-medium mb-2" style={{ color: TOKENS.textDark }}>
+                {title}
+              </h3>
 
-                {/* Description */}
-                <p
-                  className="text-sm font-light leading-relaxed mb-5"
-                  style={{ color: TOKENS.textMuted }}
-                >
-                  {description}
-                </p>
+              <p className="text-sm font-light leading-relaxed mb-5" style={{ color: TOKENS.textMuted }}>
+                {description}
+              </p>
 
-                {/* Price + learn more row */}
-                <div className="flex items-center justify-between">
-                  <span
-                    className="text-sm font-medium"
-                    style={{ color: TOKENS.deepRose }}
-                  >
-                    {price}
-                  </span>
-                  <span
-                    className="flex items-center gap-1 text-xs tracking-widest uppercase transition-colors duration-200"
-                    style={{ color: TOKENS.roseDark }}
-                  >
-                    Enquire <ArrowRight size={12} />
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium" style={{ color: TOKENS.deepRose }}>
+                  {price}
+                </span>
+                <span
+                  className="flex items-center gap-1 text-xs tracking-widest uppercase"
+                  style={{ color: TOKENS.roseDark }}
+                >
+                  Enquire <ArrowRight size={12} />
+                </span>
+              </div>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </section>
@@ -719,49 +670,54 @@ function ServicesSection() {
 // =============================================================================
 // COMPONENT: <AboutSection>
 // =============================================================================
-// Two-column layout on desktop: logo/visual on the left, text on the right.
-// On mobile it stacks to a single column.
-// Philosophy copy focuses entirely on values — no location, no years.
+// Two-column layout: logo image left, philosophy text right.
+// On mobile the columns stack vertically (grid-cols-1).
+// Copy focuses entirely on values — no location or experience claims.
 // =============================================================================
 
 function AboutSection() {
   return (
-    <section
-      id="about"
-      className="py-28 px-6 md:px-12"
-      style={{ background: TOKENS.white }}
-    >
+    <section id="about" className="py-28 px-6 md:px-12" style={{ background: TOKENS.white }}>
       <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
 
-        {/* ── Left column: large logo / image display ───────────────────── */}
+        {/* ── Left: circular logo / portrait image ──────────────────── */}
         <FadeInSection>
-          <div
-            className="relative mx-auto md:mx-0"
-            style={{ width: "300px", height: "300px" }}
-          >
-            {/* Decorative ring behind the image */}
+          <div className="relative mx-auto md:mx-0" style={{ width: "300px", height: "300px" }}>
+            {/* Soft blush glow ring behind the image */}
             <div
-              className="absolute inset-0 rounded-full"
+              className="absolute inset-0 rounded-full pointer-events-none"
               style={{
                 background: `radial-gradient(circle, ${TOKENS.blush} 0%, transparent 70%)`,
                 opacity: 0.5,
                 transform: "scale(1.2)",
               }}
             />
-            {/* Logo displayed large and circular */}
-            <div className="relative w-full h-full rounded-full overflow-hidden"
-                 style={{ border: `2px solid ${TOKENS.rose}60` }}>
+            {/* Circular image container */}
+            <div
+              className="relative w-full h-full rounded-full overflow-hidden"
+              style={{ border: `2px solid ${TOKENS.rose}60` }}
+            >
+              {/*
+                sizes="300px" tells Next.js this image is always 300px wide,
+                so it generates the right srcset without over-fetching.
+              */}
               <Image
-                src="/logo.JPEG"
-                alt="Soulful Healing — practitioner portrait"
+                src="/logo.jpeg"
+                alt="Soulful Healing practitioner"
                 fill
+                sizes="300px"
                 className="object-cover"
               />
             </div>
           </div>
         </FadeInSection>
 
-        {/* ── Right column: bio text ────────────────────────────────────── */}
+        {/* ── Right: bio text ───────────────────────────────────────── */}
+        {/*
+          whileInView is an alternative to useInView + animate.
+          It's slightly simpler for one-off elements that aren't part of a
+          larger stagger group. viewport={{ once: true }} = plays once only.
+        */}
         <motion.div
           variants={stagger}
           initial="hidden"
@@ -791,7 +747,6 @@ function AboutSection() {
             </em>
           </motion.h2>
 
-          {/* Philosophy paragraphs */}
           {[
             "Every reading begins with listening. I believe each person arrives with their own inner wisdom already intact — what tarot offers is a mirror, a set of symbols to help surface what you already sense to be true.",
             "My practice is built on creating a safe, unhurried space where you can show up exactly as you are. There is no judgment here — only curiosity, care, and a commitment to holding your story with respect.",
@@ -807,11 +762,8 @@ function AboutSection() {
             </motion.p>
           ))}
 
-          {/* Small decorative divider */}
-          <motion.div
-            variants={fadeUp}
-            className="mt-8 flex items-center gap-3"
-          >
+          {/* Decorative rose gradient divider */}
+          <motion.div variants={fadeUp} className="mt-8 flex items-center gap-3">
             <div
               className="h-px flex-1"
               style={{ background: `linear-gradient(to right, ${TOKENS.rose}80, transparent)` }}
@@ -827,8 +779,9 @@ function AboutSection() {
 // =============================================================================
 // COMPONENT: <CtaSection>
 // =============================================================================
-// Dark close section on a deep charcoal background. The rose glow orb stays
-// as the only warm element — everything else is white/muted on dark.
+// Dark plum-charcoal section that creates a strong visual close to the page.
+// The ambient rose glow orb is the only warm element — everything else is
+// white or muted on dark.
 // =============================================================================
 
 function CtaSection() {
@@ -838,7 +791,7 @@ function CtaSection() {
       className="relative py-32 px-6 text-center overflow-hidden"
       style={{ background: TOKENS.charcoal }}
     >
-      {/* Ambient glow behind the CTA text */}
+      {/* Ambient glow — decorative, pointer-events-none so it's not clickable */}
       <div
         className="absolute rounded-full pointer-events-none"
         style={{
@@ -852,11 +805,8 @@ function CtaSection() {
       />
 
       <FadeInSection className="relative z-10 max-w-xl mx-auto">
-        <p
-          className="text-xs font-medium tracking-widest uppercase mb-5"
-          style={{ color: TOKENS.rose }}
-        >
-          Begin when you're ready
+        <p className="text-xs font-medium tracking-widest uppercase mb-5" style={{ color: TOKENS.rose }}>
+          Begin when you&apos;re ready
         </p>
 
         <h2
@@ -868,26 +818,25 @@ function CtaSection() {
           }}
         >
           Your path{" "}
-          <em style={{ fontStyle: "italic", color: TOKENS.rose }}>
-            is waiting.
-          </em>
+          <em style={{ fontStyle: "italic", color: TOKENS.rose }}>is waiting.</em>
         </h2>
 
         <p
           className="text-base font-light leading-relaxed mb-10"
           style={{ color: `${TOKENS.silver}CC` }}
         >
-          Book a reading whenever it feels right. Sessions are held in a
-          calm, confidential space, entirely at your own pace.
+          Book a reading whenever it feels right. Sessions are held in a calm,
+          confidential space, entirely at your own pace.
         </p>
 
         <a
           href="mailto:hello@soulfulhealing.co.za"
-          className="inline-flex items-center gap-2 px-10 py-4 rounded-full text-sm font-medium tracking-widest uppercase transition-all duration-250"
+          className="inline-flex items-center gap-2 px-10 py-4 rounded-full text-sm font-medium tracking-widest uppercase"
           style={{
             background: TOKENS.roseDark,
             color: TOKENS.white,
             boxShadow: `0 8px 32px ${TOKENS.deepRose}66`,
+            transition: "background 0.25s ease, transform 0.25s ease",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = TOKENS.deepRose;
@@ -902,10 +851,7 @@ function CtaSection() {
           <ArrowRight size={15} />
         </a>
 
-        <p
-          className="mt-5 text-xs"
-          style={{ color: `${TOKENS.silverDark}88` }}
-        >
+        <p className="mt-5 text-xs" style={{ color: `${TOKENS.silverDark}88` }}>
           Or email{" "}
           <a
             href="mailto:hello@soulfulhealing.co.za"
@@ -922,8 +868,8 @@ function CtaSection() {
 // =============================================================================
 // COMPONENT: <Footer>
 // =============================================================================
-// Minimal footer: stays on the dark charcoal background to feel continuous
-// with the CTA. Three link columns and a copyright line.
+// Minimal — stays on charcoal to feel continuous with the CTA section above.
+// On mobile the three flex items stack vertically (flex-col).
 // =============================================================================
 
 function Footer() {
@@ -940,13 +886,14 @@ function Footer() {
         {/* Brand mark */}
         <div className="flex items-center gap-2.5">
           <div
-            className="relative w-7 h-7 rounded-full overflow-hidden"
+            className="relative w-7 h-7 rounded-full overflow-hidden flex-shrink-0"
             style={{ border: `1px solid ${TOKENS.rose}55` }}
           >
             <Image
-              src="/logo.JPEG"
+              src="/logo.jpeg"
               alt="Soulful Healing"
               fill
+              sizes="28px"
               className="object-cover"
             />
           </div>
@@ -972,10 +919,13 @@ function Footer() {
             <a
               key={label}
               href={href}
-              className="text-xs tracking-widest uppercase transition-colors duration-200"
-              style={{ color: `${TOKENS.white}35` }}
-              onMouseEnter={(e) => (e.target.style.color = TOKENS.rose)}
-              onMouseLeave={(e) => (e.target.style.color = `${TOKENS.white}35`)}
+              className="text-xs tracking-widest uppercase"
+              style={{
+                color: `${TOKENS.white}35`,
+                transition: "color 0.2s ease",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = TOKENS.rose)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = `${TOKENS.white}35`)}
             >
               {label}
             </a>
@@ -983,10 +933,7 @@ function Footer() {
         </div>
 
         {/* Copyright */}
-        <p
-          className="text-xs"
-          style={{ color: `${TOKENS.white}25`, letterSpacing: "0.06em" }}
-        >
+        <p className="text-xs" style={{ color: `${TOKENS.white}25`, letterSpacing: "0.06em" }}>
           © 2026 Soulful Healing. All rights reserved.
         </p>
       </div>
@@ -995,70 +942,17 @@ function Footer() {
 }
 
 // =============================================================================
-// GLOBAL STYLES
-// =============================================================================
-// We inject a small <style> tag for things Tailwind can't do natively:
-//   - @import for Google Fonts (Cormorant Garant — the display serif)
-//   - @keyframes for the pulsing orb animation
-//   - prefers-reduced-motion: users who've opted out of animations see
-//     instant, non-animated transitions instead (accessibility best practice)
-// =============================================================================
-
-function GlobalStyles() {
-  return (
-    <style jsx global>{`
-      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap');
-
-      /* Smooth scroll: clicking anchor links (#journey, #services etc.)
-         scrolls the page smoothly rather than jumping instantly */
-      html {
-        scroll-behavior: smooth;
-      }
-
-      /* The orb-pulse animation for the hero background orb.
-         We animate opacity and scale on a 6-second infinite loop. */
-      @keyframes orb-pulse {
-        0%, 100% { opacity: 0.18; transform: translate(-42%, -52%) scale(1); }
-        50%       { opacity: 0.30; transform: translate(-42%, -52%) scale(1.05); }
-      }
-
-      .orb-pulse {
-        animation: orb-pulse 6s ease-in-out infinite;
-      }
-
-      /* Accessibility: if the user has "Reduce Motion" enabled in their OS,
-         we disable all animations and transitions site-wide */
-      @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
-          animation-duration: 0.01ms !important;
-          transition-duration: 0.01ms !important;
-        }
-        .orb-pulse {
-          animation: none;
-        }
-      }
-    `}</style>
-  );
-}
-
-// =============================================================================
 // DEFAULT EXPORT: <HomePage>
 // =============================================================================
-// This is the actual page Next.js renders at the "/" route.
-// All it does is assemble our components in the right order.
-// The <GlobalStyles> component must come first so fonts load early.
+// The root component Next.js renders at the "/" route.
+// Assembles all section components in page order.
+// Global styles (fonts, keyframes) come from globals.css via layout.jsx.
 // =============================================================================
 
 export default function HomePage() {
   return (
     <>
-      {/* Inject fonts and keyframe animations */}
-      <GlobalStyles />
-
-      {/* Fixed navigation (sits above all sections via z-50) */}
       <Navbar />
-
-      {/* Main page content — sections scroll in sequence */}
       <main>
         <HeroSection />
         <JourneySection />
@@ -1066,8 +960,6 @@ export default function HomePage() {
         <AboutSection />
         <CtaSection />
       </main>
-
-      {/* Footer at the very bottom */}
       <Footer />
     </>
   );

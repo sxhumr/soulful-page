@@ -190,7 +190,7 @@ export default function HomePage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <img 
-            src="/logo.JPEG" 
+            src="/logo.svg" 
             alt="Soulful Healing Logo" 
             style={{ 
               height: "36px", 

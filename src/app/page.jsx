@@ -1,788 +1,1074 @@
-"use client";
+// =============================================================================
+// src/app/page.jsx — Soulful Healing · Single-Page Application
+// =============================================================================
+//
+// HOW THIS FILE IS STRUCTURED
+// ─────────────────────────────────────────────────────────────────────────────
+// Next.js App Router pages are just React components exported as default.
+// Because we use "framer-motion" (which needs browser APIs like window),
+// we mark the whole file with "use client" at the very top. Without this
+// directive, Next.js would try to render the component on the server, where
+// framer-motion's animation hooks don't exist and the build would crash.
+//
+// SECTIONS (in render order):
+//   1. <Navbar>         — Fixed logo + nav + CTA
+//   2. <HeroSection>    — Full-screen welcome + headline + CTA
+//   3. <JourneySection> — "How it works" three-step flow
+//   4. <ServicesSection>— Service cards grid with icons + pricing
+//   5. <AboutSection>   — Practitioner philosophy bio
+//   6. <CtaSection>     — Final booking encouragement
+//   7. <Footer>         — Links + copyright
+// =============================================================================
 
-import { useState } from "react";
+"use client"; // Required for framer-motion and any useState/useEffect hooks
 
-const theme = {
-  platinum: "#F7F8FA",
-  paleSilver: "#EDF0F4",
-  silver: "#C8CDD6",
+// ─── External library imports ─────────────────────────────────────────────────
+import { motion, useInView } from "framer-motion"; // Animation primitives
+import { useRef } from "react";                     // Needed for useInView refs
+import Image from "next/image";                     // Next.js optimised image component
+import {
+  Sparkles,    // Tarot / intuition icon
+  Wind,        // Energy healing icon
+  BookOpen,    // Guidance / readings icon
+  Star,        // Step decorators
+  Heart,       // Bio section warmth
+  ArrowRight,  // CTA arrows
+  Moon,        // Footer / ambient branding
+} from "lucide-react";
+
+// =============================================================================
+// DESIGN TOKENS
+// =============================================================================
+// Keeping colours and fonts in one place means you only change them here
+// if you ever want to retheme the site. Think of this as your style guide.
+//
+// Tailwind does not know about arbitrary hex values by default, so we use
+// inline style={{ color: TOKENS.deepRose }} when we need exact values, and
+// Tailwind utility classes (text-pink-200, bg-white, etc.) where approximate
+// Tailwind colours are close enough.
+// =============================================================================
+
+const TOKENS = {
+  // Backgrounds
+  platinum:   "#F7F8FA", // Near-white cool silver — main page background
+  paleSilver: "#EDF0F4", // Section alternating bg
+  blush:      "#F9D4DC", // Soft pink for accents / glows
+  rose:       "#E8A8B5", // Mid-pink for borders, pills
+  white:      "#FFFFFF",
+  charcoal:   "#2D1B23", // Dark plum-charcoal for footer + dark sections
+
+  // Text
+  deepRose:  "#8B3D54", // Primary accent — buttons, headings emphasis
+  roseDark:  "#C47F92", // Secondary accent — labels, eyebrows
+  textDark:  "#2D1B23", // Body headings
+  textMid:   "#6B4D57", // Body paragraph text
+  textMuted: "#9B8089", // Secondary / muted labels
+
+  // Utility
+  silver:     "#C8CDD6",
   silverDark: "#9BA3AF",
-  blush: "#F9D4DC",
-  rose: "#E8A8B5",
-  roseDark: "#C47F92",
-  deepRose: "#8B3D54",
-  textDark: "#2D1B23",
-  textMid: "#6B4D57",
-  textMuted: "#9B8089",
-  white: "#FFFFFF",
 };
 
-const fonts = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap');
+// =============================================================================
+// ANIMATION HELPERS
+// =============================================================================
+// Instead of repeating animation config everywhere, we define reusable
+// "variants" — plain objects that framer-motion reads to know what to animate.
+//
+// fadeUp: element starts 28px below its final position and invisible (opacity 0),
+//         then fades in and slides up to natural position (opacity 1, y: 0).
+//
+// stagger: a parent variant that staggers its children by 0.12s each.
+//          The "staggerChildren" property belongs on the parent, and each
+//          child will use whichever variant it's given (usually "fadeUp").
+// =============================================================================
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: 'Inter', sans-serif;
-    background: ${theme.platinum};
-    color: ${theme.textDark};
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .display {
-    font-family: 'Cormorant Garant', serif;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-12px); }
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes orb-pulse {
-    0%, 100% { opacity: 0.18; transform: scale(1); }
-    50%       { opacity: 0.28; transform: scale(1.04); }
-  }
-
-  .hero-orb {
-    animation: orb-pulse 6s ease-in-out infinite;
-  }
-
-  .hero-content {
-    animation: fadeUp 1s ease both;
-  }
-
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 48px rgba(139, 61, 84, 0.10) !important;
-    border-color: ${theme.rose} !important;
-  }
-
-  .card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-  }
-
-  .cta-btn:hover {
-    background: ${theme.deepRose} !important;
-    transform: translateY(-2px);
-    box-shadow: 0 12px 36px rgba(139, 61, 84, 0.28) !important;
-  }
-
-  .cta-btn {
-    transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
-  }
-
-  .nav-link:hover {
-    color: ${theme.deepRose} !important;
-  }
-
-  .nav-link {
-    transition: color 0.2s ease;
-  }
-
-  .testimonial-dot.active {
-    background: ${theme.deepRose} !important;
-    width: 24px !important;
-  }
-
-  .testimonial-dot {
-    transition: background 0.3s ease, width 0.3s ease;
-    cursor: pointer;
-  }
-
-  .pillar-icon {
-    animation: float 4s ease-in-out infinite;
-  }
-
-  .section-fade {
-    animation: fadeUp 0.8s ease both;
-  }
-
-  @media (max-width: 768px) {
-    .cards-grid {
-      grid-template-columns: 1fr !important;
-    }
-    .hero-title {
-      font-size: 3.2rem !important;
-    }
-    .nav-links {
-      display: none !important;
-    }
-    .testimonials-grid {
-      grid-template-columns: 1fr !important;
-    }
-  }
-`;
-
-const testimonials = [
-  {
-    quote: "A wonderfully grounded experience. The session provided a peaceful space to pause, reflect, and think about my goals from a completely new angle.",
-    name: "Amara N.",
-    role: "Cape Town",
-    initials: "AN",
+const fadeUp = {
+  hidden: { opacity: 0, y: 28 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] }, // Custom cubic-bezier: feels gentle
   },
-  {
-    quote: "I appreciated how gentle and welcoming the environment was. It felt less like fortune-telling and more like an open, meaningful conversation.",
-    name: "Leila M.",
-    role: "Johannesburg",
-    initials: "LM",
-  },
-  {
-    quote: "Elegant, thoughtful, and highly supportive. A beautiful personal practice to help sort through complex thoughts and find focus.",
-    name: "Priya S.",
-    role: "Durban",
-    initials: "PS",
-  },
-];
+};
 
-const services = [
-  {
-    icon: "✦",
-    label: "Tarot Exploration",
-    tagline: "Intuitive reflection",
-    body: "An invitation to pause and look at your current life situations through symbolic card spreads, helping you map out thoughts, choices, and perspectives.",
-    accent: theme.blush,
-  },
-  {
-    icon: "◎",
-    label: "Numerology Introductions",
-    tagline: "Personal blueprints",
-    body: "A structured look at how the numbers in your birthdate align with common personality archetypes, offering a fun framework for introspection.",
-    accent: theme.paleSilver,
-  },
-  {
-    icon: "◇",
-    label: "Guided Reflection Sessions",
-    tagline: "Mindful check-ins",
-    body: "One-on-one discovery conversations combining intuitive tools with dedicated active listening to help you organize internal goals and priorities.",
-    accent: theme.blush,
-  },
-];
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
 
-export default function HomePage() {
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
+// =============================================================================
+// HELPER COMPONENT: <FadeInSection>
+// =============================================================================
+// Wraps any block of content in a <motion.div> that triggers its animation
+// when it enters the viewport. This is the "scroll-reveal" pattern.
+//
+// How useInView works:
+//   1. We attach a ref to the element.
+//   2. useInView watches that ref and returns true once 20% of the element
+//      is visible on screen (threshold: 0.2).
+//   3. "once: true" means the animation plays only the first time — it won't
+//      re-animate if you scroll past and back.
+// =============================================================================
+
+function FadeInSection({ children, className = "", delay = 0 }) {
+  const ref = useRef(null);
+  // useInView returns a boolean — true when the element is in the viewport
+  const isInView = useInView(ref, { once: true, amount: 0.2 });
 
   return (
-    <>
-      <style>{fonts}</style>
+    <motion.div
+      ref={ref}
+      variants={fadeUp}
+      initial="hidden"
+      animate={isInView ? "visible" : "hidden"}
+      // delay lets individual elements inside a section stagger manually
+      transition={{ delay }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
-      {/* ── NAV ── */}
-      <nav style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "1rem 3rem",
-        background: "rgba(247, 248, 250, 0.85)",
+// =============================================================================
+// DATA: SERVICES
+// =============================================================================
+// Defining data as a plain array outside the component keeps the JSX clean
+// and makes it easy to add/remove services without touching layout code.
+// Each object has: icon (a Lucide component), title, description, price.
+// =============================================================================
+
+const SERVICES = [
+  {
+    Icon: Sparkles,
+    title: "Tarot Reading — Single Card",
+    description:
+      "A focused one-card pull to illuminate the energy of a specific question or moment. Perfect for a quick, grounded check-in.",
+    price: "From R250",
+  },
+  {
+    Icon: BookOpen,
+    title: "Tarot Reading — Full Spread",
+    description:
+      "An in-depth Celtic Cross or custom spread exploring past influences, present energy, and the path unfolding ahead of you.",
+    price: "From R550",
+  },
+  {
+    Icon: Wind,
+    title: "Energy Clearing Session",
+    description:
+      "A gentle guided session to identify and release stagnant energy patterns, creating space for clarity, rest, and renewal.",
+    price: "From R450",
+  },
+  {
+    Icon: Heart,
+    title: "Spiritual Guidance & Mentorship",
+    description:
+      "An open, unhurried conversation using tarot and intuitive listening to help you reconnect with your own inner knowing.",
+    price: "From R600",
+  },
+  {
+    Icon: Star,
+    title: "Numerology Blueprint",
+    description:
+      "Discover the personal numbers encoded in your birthdate and name — a structural map of your natural strengths and cycles.",
+    price: "From R350",
+  },
+  {
+    Icon: Moon,
+    title: "Monthly Ritual Package",
+    description:
+      "Three monthly sessions combining tarot, intention-setting, and reflection — a consistent space for growth at your own pace.",
+    price: "From R1 200 / month",
+  },
+];
+
+// =============================================================================
+// DATA: JOURNEY STEPS
+// =============================================================================
+// The "How it works" section is a genuine sequence (1 → 2 → 3), so numbered
+// steps here are appropriate — the order matters and carries meaning.
+// =============================================================================
+
+const STEPS = [
+  {
+    number: "01",
+    title: "Choose your reading",
+    body:
+      "Browse the services and select the format that feels right for where you are right now. If you're unsure, the single-card reading is a gentle starting point.",
+  },
+  {
+    number: "02",
+    title: "Set your intention",
+    body:
+      "Before your session, take a quiet moment to hold a question or theme in mind. There are no wrong intentions — only honest ones.",
+  },
+  {
+    number: "03",
+    title: "Receive your insight",
+    body:
+      "Your reading is delivered with care, warmth, and space for you to ask questions. You'll leave with something real to sit with.",
+  },
+];
+
+// =============================================================================
+// COMPONENT: <Navbar>
+// =============================================================================
+// A fixed navigation bar at the top of the page. "fixed top-0" keeps it
+// visible as you scroll. "backdrop-blur-md bg-white/80" creates the frosted-
+// glass effect — the nav is slightly transparent and blurs what's behind it.
+// "z-50" ensures it sits above all other page content.
+// =============================================================================
+
+function Navbar() {
+  return (
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4"
+      style={{
+        background: "rgba(247, 248, 250, 0.88)",
         backdropFilter: "blur(16px)",
-        borderBottom: `0.5px solid ${theme.silver}40`,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <img 
-            src="/logo.jpg" 
-            alt="Soulful Healing Logo" 
-            style={{ height: "36px", width: "36px", borderRadius: "50%", objectFit: "cover" }}
-            onError={(e) => { e.target.style.display = 'none'; }}
+        borderBottom: `0.5px solid ${TOKENS.silver}55`,
+      }}
+    >
+      {/* ── Logo + Brand name ───────────────────────────────────────────── */}
+      {/* 
+        Next.js <Image> requires a width and height (in pixels) for static
+        images. Since our logo is circular and small in the nav, 40×40 works.
+        The src path "/logo.JPEG" assumes you've placed logo.JPEG inside
+        the /public folder at the root of your Next.js project.
+        public/logo.JPEG → accessible at URL /logo.JPEG
+      */}
+      <div className="flex items-center gap-3">
+        <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
+             style={{ border: `1.5px solid ${TOKENS.rose}` }}>
+          <Image
+            src="/logo.JPEG"
+            alt="Soulful Healing logo"
+            fill               // fill = stretch to fill the parent container
+            className="object-cover"  // object-cover = no squashing, crops to fit
+            priority           // priority = preload this image (important for LCP)
           />
-          <span className="display" style={{
-            fontSize: "1.3rem",
-            fontWeight: 400,
-            letterSpacing: "0.06em",
-            color: theme.deepRose,
-          }}>
-            Soulful Healing
-          </span>
         </div>
+        <span
+          className="text-lg tracking-wide font-light"
+          style={{ fontFamily: "'Cormorant Garant', serif", color: TOKENS.deepRose }}
+        >
+          Soulful Healing
+        </span>
+      </div>
 
-        <div className="nav-links" style={{ display: "flex", gap: "2.5rem" }}>
-          {["Sessions", "Services", "About", "Contact"].map((item) => (
-            <a
-              key={item}
-              href="#"
-              className="nav-link"
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: 400,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                textDecoration: "none",
-                color: theme.textMuted,
-              }}
-            >
-              {item}
-            </a>
-          ))}
-        </div>
+      {/* ── Desktop nav links ────────────────────────────────────────────── */}
+      {/* hidden md:flex — hidden on mobile, shown as flex row on md and above */}
+      <div className="hidden md:flex items-center gap-8">
+        {["Journey", "Services", "About", "Contact"].map((label) => (
+          <a
+            key={label}
+            href={`#${label.toLowerCase()}`}
+            className="text-xs tracking-widest uppercase transition-colors duration-200"
+            style={{ color: TOKENS.textMuted }}
+            // Inline hover is not possible in JSX; Tailwind hover: classes handle it
+            onMouseEnter={(e) => (e.target.style.color = TOKENS.deepRose)}
+            onMouseLeave={(e) => (e.target.style.color = TOKENS.textMuted)}
+          >
+            {label}
+          </a>
+        ))}
+      </div>
 
-        <button style={{
-          fontSize: "0.75rem",
-          fontWeight: 500,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          padding: "0.6rem 1.5rem",
-          borderRadius: "50px",
-          border: `1px solid ${theme.rose}`,
+      {/* ── CTA button ───────────────────────────────────────────────────── */}
+      <a
+        href="#contact"
+        className="text-xs tracking-widest uppercase font-medium px-5 py-2.5 rounded-full transition-all duration-200"
+        style={{
+          border: `1px solid ${TOKENS.rose}`,
+          color: TOKENS.deepRose,
           background: "transparent",
-          color: theme.deepRose,
-          cursor: "pointer",
-        }}>
-          Book a Session
-        </button>
-      </nav>
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = TOKENS.deepRose;
+          e.currentTarget.style.color = TOKENS.white;
+          e.currentTarget.style.borderColor = TOKENS.deepRose;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = TOKENS.deepRose;
+          e.currentTarget.style.borderColor = TOKENS.rose;
+        }}
+      >
+        Book a Reading
+      </a>
+    </nav>
+  );
+}
 
-      {/* ── HERO ── */}
-      <section style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        overflow: "hidden",
-        paddingTop: "6rem",
-        background: `linear-gradient(160deg, ${theme.white} 0%, ${theme.platinum} 60%, ${theme.paleSilver} 100%)`,
-      }}>
+// =============================================================================
+// COMPONENT: <HeroSection>
+// =============================================================================
+// Full-viewport-height welcome section. "min-h-screen" = at least 100vh tall.
+// The orb behind the headline is a decorative div with a radial-gradient and
+// a pulsing animation defined via a CSS @keyframes in <GlobalStyles>.
+// =============================================================================
 
-        {/* Orb */}
-        <div className="hero-orb" style={{
-          position: "absolute",
-          width: "600px",
-          height: "600px",
-          borderRadius: "50%",
-          background: `radial-gradient(circle at 40% 40%, ${theme.blush}, ${theme.rose}44 50%, transparent 70%)`,
+function HeroSection() {
+  return (
+    <section
+      id="hero"
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-24 pb-16"
+      style={{
+        background: `linear-gradient(160deg, ${TOKENS.white} 0%, ${TOKENS.platinum} 55%, ${TOKENS.paleSilver} 100%)`,
+      }}
+    >
+      {/* ── Decorative ambient orb ──────────────────────────────────────── */}
+      {/* 
+        This is the "signature" visual element of the design — a glowing blush
+        circle that sits behind the text. It pulses gently via CSS animation.
+        "pointer-events-none" means mouse clicks pass through it to elements below.
+      */}
+      <div
+        className="orb-pulse absolute rounded-full pointer-events-none"
+        style={{
+          width: "580px",
+          height: "580px",
+          background: `radial-gradient(circle at 40% 40%, ${TOKENS.blush}, ${TOKENS.rose}44 50%, transparent 70%)`,
           top: "50%",
           left: "50%",
-          transform: "translate(-40%, -52%)",
-          pointerEvents: "none",
-        }} />
+          transform: "translate(-42%, -52%)",
+        }}
+      />
 
-        {/* Decorative elements */}
-        <div style={{
-          position: "absolute",
-          width: "160px",
-          height: "160px",
-          borderRadius: "50%",
-          border: `1px solid ${theme.silver}60`,
-          top: "18%",
-          right: "14%",
-          pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute",
-          width: "80px",
-          height: "80px",
-          borderRadius: "50%",
-          border: `1px solid ${theme.rose}50`,
-          bottom: "22%",
-          left: "10%",
-          pointerEvents: "none",
-        }} />
+      {/* Small decorative ring — top-right */}
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: "140px",
+          height: "140px",
+          border: `1px solid ${TOKENS.silver}70`,
+          top: "16%",
+          right: "12%",
+        }}
+      />
 
-        <div className="hero-content" style={{ textAlign: "center", maxWidth: "780px", padding: "0 2rem", position: "relative" }}>
+      {/* Small decorative ring — bottom-left */}
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: "72px",
+          height: "72px",
+          border: `1px solid ${TOKENS.rose}60`,
+          bottom: "20%",
+          left: "8%",
+        }}
+      />
 
-          <p style={{
-            fontSize: "0.7rem",
-            fontWeight: 500,
-            letterSpacing: "0.22em",
-            textTransform: "uppercase",
-            color: theme.roseDark,
-            marginBottom: "1.75rem",
-          }}>
-            Mindful Reflection · Cape Town
-          </p>
+      {/* ── Hero text content ────────────────────────────────────────────── */}
+      {/* 
+        motion.div with fadeUp variant: this entire block fades up on load.
+        "initial" = start state. "animate" = end state. We pass the variant
+        names ("hidden", "visible") from our TOKENS above.
+      */}
+      <motion.div
+        className="relative z-10 text-center max-w-3xl px-6"
+        variants={stagger}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Eyebrow label */}
+        <motion.p
+          variants={fadeUp}
+          className="text-xs font-medium tracking-widest uppercase mb-7"
+          style={{ color: TOKENS.roseDark }}
+        >
+          Intuitive guidance · Held with care
+        </motion.p>
 
-          <h1
-            className="display hero-title"
+        {/* Main headline */}
+        <motion.h1
+          variants={fadeUp}
+          className="font-light leading-tight mb-6"
+          style={{
+            fontFamily: "'Cormorant Garant', serif",
+            fontSize: "clamp(3rem, 7vw, 5.5rem)", // Fluid type: scales with viewport
+            letterSpacing: "-0.02em",
+            color: TOKENS.textDark,
+          }}
+        >
+          A quiet space to find{" "}
+          <em style={{ fontStyle: "italic", color: TOKENS.deepRose }}>
+            your own clarity.
+          </em>
+        </motion.h1>
+
+        {/* Subheadline / supporting copy */}
+        <motion.p
+          variants={fadeUp}
+          className="text-base md:text-lg font-light leading-relaxed mb-10 mx-auto"
+          style={{ color: TOKENS.textMid, maxWidth: "520px" }}
+        >
+          Personalised tarot readings and spiritual guidance offered with
+          warmth, honesty, and deep respect for your journey.
+        </motion.p>
+
+        {/* CTA buttons */}
+        <motion.div
+          variants={fadeUp}
+          className="flex flex-wrap items-center justify-center gap-4"
+        >
+          {/* Primary CTA */}
+          <a
+            href="#contact"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium tracking-widest uppercase transition-all duration-250"
             style={{
-              fontSize: "5rem",
-              fontWeight: 300,
-              lineHeight: 1.1,
-              letterSpacing: "-0.01em",
-              color: theme.textDark,
-              marginBottom: "1.5rem",
+              background: TOKENS.roseDark,
+              color: TOKENS.white,
+              boxShadow: `0 8px 24px ${TOKENS.roseDark}44`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOKENS.deepRose;
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = `0 14px 32px ${TOKENS.deepRose}55`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = TOKENS.roseDark;
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = `0 8px 24px ${TOKENS.roseDark}44`;
             }}
           >
-            A gentle space to
-            <br />
-            <em style={{ fontStyle: "italic", color: theme.deepRose }}>uncover your perspective.</em>
-          </h1>
+            Book a Reading
+            <ArrowRight size={15} />
+          </a>
 
-          <p style={{
-            fontSize: "1.05rem",
-            fontWeight: 300,
-            lineHeight: 1.75,
-            color: theme.textMid,
-            maxWidth: "540px",
-            margin: "0 auto 3rem",
-          }}>
-            Thoughtful tarot consultations, personal numerology overviews, and calm mentorship sessions tailored to support you in finding balance.
+          {/* Secondary ghost button */}
+          <a
+            href="#journey"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-light tracking-widest uppercase transition-colors duration-200"
+            style={{ border: `1px solid ${TOKENS.silver}`, color: TOKENS.textMid }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = TOKENS.rose)}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = TOKENS.silver)}
+          >
+            How it works
+          </a>
+        </motion.div>
+      </motion.div>
+
+      {/* ── Scroll nudge ─────────────────────────────────────────────────── */}
+      <div
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+      >
+        <p
+          className="text-xs tracking-widest uppercase"
+          style={{ color: TOKENS.textMuted }}
+        >
+          Explore
+        </p>
+        {/* Animated thin vertical line */}
+        <motion.div
+          className="w-px h-10"
+          style={{ background: `linear-gradient(to bottom, ${TOKENS.silverDark}, transparent)` }}
+          animate={{ scaleY: [0.8, 1, 0.8] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+    </section>
+  );
+}
+
+// =============================================================================
+// COMPONENT: <JourneySection>
+// =============================================================================
+// Shows three numbered steps in a clean responsive grid. On mobile (< md),
+// the grid collapses to a single column. Each card fades in from below as
+// it enters the viewport, staggered so they don't all appear at once.
+// =============================================================================
+
+function JourneySection() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.15 });
+
+  return (
+    <section
+      id="journey"
+      className="py-28 px-6 md:px-12"
+      style={{ background: TOKENS.white }}
+    >
+      <div className="max-w-5xl mx-auto">
+
+        {/* Section header */}
+        <FadeInSection className="mb-20">
+          <p
+            className="text-xs font-medium tracking-widest uppercase mb-4"
+            style={{ color: TOKENS.roseDark }}
+          >
+            The journey
           </p>
-
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <button className="cta-btn" style={{
-              fontSize: "0.8rem",
-              fontWeight: 500,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              padding: "1rem 2.5rem",
-              borderRadius: "50px",
-              border: "none",
-              background: theme.roseDark,
-              color: theme.white,
-              cursor: "pointer",
-              boxShadow: `0 8px 24px ${theme.roseDark}40`,
-            }}>
-              View Sessions
-            </button>
-
-            <button style={{
-              fontSize: "0.8rem",
-              fontWeight: 400,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              padding: "1rem 2.5rem",
-              borderRadius: "50px",
-              border: `1px solid ${theme.silver}`,
-              background: "transparent",
-              color: theme.textMid,
-              cursor: "pointer",
-            }}>
-              Our Philosophy
-            </button>
-          </div>
-
-        </div>
-
-        {/* Scroll indicator */}
-        <div style={{
-          position: "absolute",
-          bottom: "2.5rem",
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "0.5rem",
-        }}>
-          <p style={{ fontSize: "0.65rem", letterSpacing: "0.18em", textTransform: "uppercase", color: theme.textMuted }}>
-            Explore
-          </p>
-          <div style={{
-            width: "1px",
-            height: "40px",
-            background: `linear-gradient(to bottom, ${theme.silverDark}, transparent)`,
-          }} />
-        </div>
-      </section>
-
-      {/* ── SERVICES ── */}
-      <section style={{
-        padding: "8rem 3rem",
-        background: theme.white,
-      }}>
-        <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
-
-          <div style={{ marginBottom: "5rem" }}>
-            <p style={{
-              fontSize: "0.65rem",
-              fontWeight: 500,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: theme.roseDark,
-              marginBottom: "1rem",
-            }}>
-              The Focus
-            </p>
-            <h2 className="display" style={{
-              fontSize: "3.25rem",
-              fontWeight: 300,
-              color: theme.textDark,
-              lineHeight: 1.1,
-              letterSpacing: "-0.01em",
-              maxWidth: "500px",
-            }}>
-              Three paths toward <em style={{ fontStyle: "italic", color: theme.deepRose }}>mental clarity.</em>
-            </h2>
-          </div>
-
-          <div
-            className="cards-grid"
+          <h2
+            className="font-light leading-tight"
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "1.5rem",
+              fontFamily: "'Cormorant Garant', serif",
+              fontSize: "clamp(2.25rem, 5vw, 3.25rem)",
+              color: TOKENS.textDark,
+              maxWidth: "460px",
             }}
           >
-            {services.map((s) => (
-              <div
-                key={s.label}
-                className="card"
+            How a session{" "}
+            <em style={{ fontStyle: "italic", color: TOKENS.deepRose }}>
+              unfolds.
+            </em>
+          </h2>
+        </FadeInSection>
+
+        {/* Steps grid */}
+        {/* 
+          motion.div with stagger variant: this parent staggers each child's
+          fadeUp animation by 0.12s. The ref + isInView combination means
+          the animation only plays when this grid scrolls into view.
+        */}
+        <motion.div
+          ref={ref}
+          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          variants={stagger}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+        >
+          {STEPS.map((step) => (
+            <motion.div
+              key={step.number}
+              variants={fadeUp}
+              className="relative p-8 rounded-2xl"
+              style={{
+                background: TOKENS.platinum,
+                border: `1px solid ${TOKENS.silver}50`,
+              }}
+            >
+              {/* Large faint step number — purely decorative context */}
+              <p
+                className="font-light mb-6 leading-none"
                 style={{
-                  background: theme.platinum,
-                  borderRadius: "20px",
-                  padding: "2.5rem 2rem",
-                  border: `1px solid ${theme.silver}50`,
-                  cursor: "pointer",
-                  position: "relative",
-                  overflow: "hidden",
+                  fontFamily: "'Cormorant Garant', serif",
+                  fontSize: "4rem",
+                  color: TOKENS.rose,          // Soft pink, not distracting
+                  opacity: 0.6,
                 }}
               >
-                {/* Card accent blob */}
-                <div style={{
-                  position: "absolute",
-                  top: "-40px",
-                  right: "-40px",
-                  width: "120px",
-                  height: "120px",
-                  borderRadius: "50%",
-                  background: s.accent,
-                  opacity: 0.5,
-                  pointerEvents: "none",
-                }} />
+                {step.number}
+              </p>
 
-                <div className="pillar-icon" style={{
-                  fontSize: "2rem",
-                  color: theme.deepRose,
-                  marginBottom: "2rem",
-                  lineHeight: 1,
-                }}>
-                  {s.icon}
+              <h3
+                className="text-xl font-medium mb-3"
+                style={{ color: TOKENS.textDark }}
+              >
+                {step.title}
+              </h3>
+
+              <p
+                className="text-sm font-light leading-relaxed"
+                style={{ color: TOKENS.textMuted }}
+              >
+                {step.body}
+              </p>
+
+              {/* Decorative blush blob — top right corner */}
+              <div
+                className="absolute top-0 right-0 rounded-full pointer-events-none"
+                style={{
+                  width: "80px",
+                  height: "80px",
+                  background: TOKENS.blush,
+                  opacity: 0.35,
+                  transform: "translate(30%, -30%)",
+                }}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// =============================================================================
+// COMPONENT: <ServicesSection>
+// =============================================================================
+// A 2-column grid on desktop, 1-column on mobile. Each service card shows:
+// - A Lucide icon in a soft blush pill
+// - Title, description, and price
+// Framer-motion stagger plays when the grid scrolls into view.
+// =============================================================================
+
+function ServicesSection() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.1 });
+
+  return (
+    <section
+      id="services"
+      className="py-28 px-6 md:px-12"
+      style={{ background: TOKENS.paleSilver }}
+    >
+      <div className="max-w-5xl mx-auto">
+
+        {/* Section header */}
+        <FadeInSection className="mb-20">
+          <p
+            className="text-xs font-medium tracking-widest uppercase mb-4"
+            style={{ color: TOKENS.roseDark }}
+          >
+            What's on offer
+          </p>
+          <h2
+            className="font-light leading-tight"
+            style={{
+              fontFamily: "'Cormorant Garant', serif",
+              fontSize: "clamp(2.25rem, 5vw, 3.25rem)",
+              color: TOKENS.textDark,
+              maxWidth: "460px",
+            }}
+          >
+            Readings and sessions{" "}
+            <em style={{ fontStyle: "italic", color: TOKENS.deepRose }}>
+              for every need.
+            </em>
+          </h2>
+        </FadeInSection>
+
+        {/* Services grid */}
+        <motion.div
+          ref={ref}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          variants={stagger}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+        >
+          {SERVICES.map((service) => {
+            // We destructure the Icon component so we can render it as JSX
+            const { Icon, title, description, price } = service;
+
+            return (
+              <motion.div
+                key={title}
+                variants={fadeUp}
+                className="group p-8 rounded-2xl transition-all duration-300"
+                style={{
+                  background: TOKENS.white,
+                  border: `1px solid ${TOKENS.silver}50`,
+                }}
+                // Hover: lift the card and show a rose border
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-4px)";
+                  e.currentTarget.style.boxShadow = `0 16px 48px ${TOKENS.deepRose}14`;
+                  e.currentTarget.style.borderColor = TOKENS.rose;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.borderColor = `${TOKENS.silver}50`;
+                }}
+              >
+                {/* Icon inside a soft blush pill */}
+                <div
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-5"
+                  style={{ background: TOKENS.blush }}
+                >
+                  {/* 
+                    Lucide icons are React components. We pass size and color as props.
+                    size={18} = 18px × 18px SVG. 
+                  */}
+                  <Icon size={18} style={{ color: TOKENS.deepRose }} />
                 </div>
 
-                <p style={{
-                  fontSize: "0.6rem",
-                  fontWeight: 500,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  color: theme.roseDark,
-                  marginBottom: "0.6rem",
-                }}>
-                  {s.tagline}
-                </p>
-
-                <h3 className="display" style={{
-                  fontSize: "1.6rem",
-                  fontWeight: 400,
-                  color: theme.textDark,
-                  marginBottom: "1rem",
-                  lineHeight: 1.15,
-                }}>
-                  {s.label}
+                {/* Service title */}
+                <h3
+                  className="text-lg font-medium mb-2"
+                  style={{ color: TOKENS.textDark }}
+                >
+                  {title}
                 </h3>
 
-                <p style={{
-                  fontSize: "0.9rem",
-                  lineHeight: 1.7,
-                  color: theme.textMuted,
-                  fontWeight: 300,
-                }}>
-                  {s.body}
+                {/* Description */}
+                <p
+                  className="text-sm font-light leading-relaxed mb-5"
+                  style={{ color: TOKENS.textMuted }}
+                >
+                  {description}
                 </p>
 
-                <div style={{
-                  marginTop: "2rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.4rem",
-                }}>
-                  <span style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 500,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: theme.deepRose,
-                  }}>
-                    Learn More
+                {/* Price + learn more row */}
+                <div className="flex items-center justify-between">
+                  <span
+                    className="text-sm font-medium"
+                    style={{ color: TOKENS.deepRose }}
+                  >
+                    {price}
                   </span>
-                  <span style={{ color: theme.deepRose, fontSize: "0.8rem" }}>→</span>
+                  <span
+                    className="flex items-center gap-1 text-xs tracking-widest uppercase transition-colors duration-200"
+                    style={{ color: TOKENS.roseDark }}
+                  >
+                    Enquire <ArrowRight size={12} />
+                  </span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
 
-      {/* ── PRIVACY STRIP ── */}
-      <section style={{
-        background: `linear-gradient(135deg, ${theme.blush} 0%, ${theme.paleSilver} 100%)`,
-        padding: "4.5rem 3rem",
-        borderTop: `1px solid ${theme.silver}40`,
-        borderBottom: `1px solid ${theme.silver}40`,
-      }}>
-        <div style={{
-          maxWidth: "960px",
-          margin: "0 auto",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "3rem",
-          textAlign: "center",
-        }}>
-          {[
-            { num: "Personal", label: "Tailored Spreads" },
-            { num: "Comfortable", label: "Open, Calm Space" },
-            { num: "Grounded", label: "Practical Frameworks" },
-            { num: "100%", label: "Strictly Confidential" },
-          ].map(({ num, label }) => (
-            <div key={label}>
-              <p className="display" style={{
-                fontSize: "2.8rem",
-                fontWeight: 300,
-                color: theme.deepRose,
-                letterSpacing: "-0.01em",
-                lineHeight: 1,
-                marginBottom: "0.5rem",
-              }}>
-                {num}
-              </p>
-              <p style={{
-                fontSize: "0.72rem",
-                fontWeight: 500,
-                letterSpacing: "0.15em",
-                textTransform: "uppercase",
-                color: theme.textMid,
-              }}>
-                {label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+// =============================================================================
+// COMPONENT: <AboutSection>
+// =============================================================================
+// Two-column layout on desktop: logo/visual on the left, text on the right.
+// On mobile it stacks to a single column.
+// Philosophy copy focuses entirely on values — no location, no years.
+// =============================================================================
 
-      {/* ── TESTIMONIALS ── */}
-      <section style={{
-        padding: "8rem 3rem",
-        background: theme.platinum,
-      }}>
-        <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
+function AboutSection() {
+  return (
+    <section
+      id="about"
+      className="py-28 px-6 md:px-12"
+      style={{ background: TOKENS.white }}
+    >
+      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
 
-          <div style={{ marginBottom: "4rem" }}>
-            <p style={{
-              fontSize: "0.65rem",
-              fontWeight: 500,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: theme.roseDark,
-              marginBottom: "1rem",
-            }}>
-              Feedback
-            </p>
-            <h2 className="display" style={{
-              fontSize: "3rem",
-              fontWeight: 300,
-              color: theme.textDark,
-              lineHeight: 1.1,
-              letterSpacing: "-0.01em",
-            }}>
-              Experiences from our <em style={{ fontStyle: "italic", color: theme.deepRose }}>community.</em>
-            </h2>
-          </div>
-
-          <div className="testimonials-grid" style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "1.5rem",
-            marginBottom: "2.5rem",
-          }}>
-            {testimonials.map((t, i) => (
-              <div
-                key={t.name}
-                style={{
-                  background: theme.white,
-                  borderRadius: "20px",
-                  padding: "2rem",
-                  border: `1px solid ${i === activeTestimonial ? theme.rose : theme.silver + "40"}`,
-                  transition: "border-color 0.3s ease",
-                  cursor: "pointer",
-                }}
-                onClick={() => setActiveTestimonial(i)}
-              >
-                <p className="display" style={{
-                  fontSize: "1.05rem",
-                  fontWeight: 300,
-                  fontStyle: "italic",
-                  color: theme.textMid,
-                  lineHeight: 1.65,
-                  marginBottom: "1.75rem",
-                }}>
-                  "{t.quote}"
-                </p>
-
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <div style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "50%",
-                    background: `linear-gradient(135deg, ${theme.rose}, ${theme.blush})`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "0.65rem",
-                    fontWeight: 600,
-                    color: theme.deepRose,
-                    letterSpacing: "0.05em",
-                  }}>
-                    {t.initials}
-                  </div>
-                  <div>
-                    <p style={{ fontSize: "0.85rem", fontWeight: 500, color: theme.textDark, lineHeight: 1 }}>
-                      {t.name}
-                    </p>
-                    <p style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>
-                      {t.role}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Dot indicators */}
-          <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
-            {testimonials.map((_, i) => (
-              <button
-                key={i}
-                className={`testimonial-dot${i === activeTestimonial ? " active" : ""}`}
-                onClick={() => setActiveTestimonial(i)}
-                style={{
-                  height: "6px",
-                  width: i === activeTestimonial ? "24px" : "6px",
-                  borderRadius: "3px",
-                  border: "none",
-                  background: i === activeTestimonial ? theme.deepRose : theme.silver,
-                  padding: 0,
-                }}
-                aria-label={`Testimonial ${i + 1}`}
+        {/* ── Left column: large logo / image display ───────────────────── */}
+        <FadeInSection>
+          <div
+            className="relative mx-auto md:mx-0"
+            style={{ width: "300px", height: "300px" }}
+          >
+            {/* Decorative ring behind the image */}
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: `radial-gradient(circle, ${TOKENS.blush} 0%, transparent 70%)`,
+                opacity: 0.5,
+                transform: "scale(1.2)",
+              }}
+            />
+            {/* Logo displayed large and circular */}
+            <div className="relative w-full h-full rounded-full overflow-hidden"
+                 style={{ border: `2px solid ${TOKENS.rose}60` }}>
+              <Image
+                src="/logo.JPEG"
+                alt="Soulful Healing — practitioner portrait"
+                fill
+                className="object-cover"
               />
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </FadeInSection>
 
-      {/* ── CTA ── */}
-      <section style={{
-        padding: "8rem 3rem",
-        background: theme.textDark,
-        position: "relative",
-        overflow: "hidden",
-        textAlign: "center",
-      }}>
+        {/* ── Right column: bio text ────────────────────────────────────── */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+        >
+          <motion.p
+            variants={fadeUp}
+            className="text-xs font-medium tracking-widest uppercase mb-5"
+            style={{ color: TOKENS.roseDark }}
+          >
+            The practitioner
+          </motion.p>
 
-        {/* Decorative orb */}
-        <div style={{
-          position: "absolute",
-          width: "500px",
-          height: "500px",
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${theme.rose}22, transparent 70%)`,
+          <motion.h2
+            variants={fadeUp}
+            className="font-light leading-tight mb-7"
+            style={{
+              fontFamily: "'Cormorant Garant', serif",
+              fontSize: "clamp(2rem, 4vw, 3rem)",
+              color: TOKENS.textDark,
+            }}
+          >
+            Guided by{" "}
+            <em style={{ fontStyle: "italic", color: TOKENS.deepRose }}>
+              intuition and empathy.
+            </em>
+          </motion.h2>
+
+          {/* Philosophy paragraphs */}
+          {[
+            "Every reading begins with listening. I believe each person arrives with their own inner wisdom already intact — what tarot offers is a mirror, a set of symbols to help surface what you already sense to be true.",
+            "My practice is built on creating a safe, unhurried space where you can show up exactly as you are. There is no judgment here — only curiosity, care, and a commitment to holding your story with respect.",
+            "Whether you're navigating change, searching for direction, or simply wanting to pause and reflect, I am here to walk alongside you.",
+          ].map((para, i) => (
+            <motion.p
+              key={i}
+              variants={fadeUp}
+              className="text-sm font-light leading-loose mb-5 last:mb-0"
+              style={{ color: TOKENS.textMid }}
+            >
+              {para}
+            </motion.p>
+          ))}
+
+          {/* Small decorative divider */}
+          <motion.div
+            variants={fadeUp}
+            className="mt-8 flex items-center gap-3"
+          >
+            <div
+              className="h-px flex-1"
+              style={{ background: `linear-gradient(to right, ${TOKENS.rose}80, transparent)` }}
+            />
+            <Heart size={14} style={{ color: TOKENS.rose }} />
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// =============================================================================
+// COMPONENT: <CtaSection>
+// =============================================================================
+// Dark close section on a deep charcoal background. The rose glow orb stays
+// as the only warm element — everything else is white/muted on dark.
+// =============================================================================
+
+function CtaSection() {
+  return (
+    <section
+      id="contact"
+      className="relative py-32 px-6 text-center overflow-hidden"
+      style={{ background: TOKENS.charcoal }}
+    >
+      {/* Ambient glow behind the CTA text */}
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: "480px",
+          height: "480px",
+          background: `radial-gradient(circle, ${TOKENS.rose}28, transparent 70%)`,
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          pointerEvents: "none",
-        }} />
+        }}
+      />
 
-        <div style={{ position: "relative", maxWidth: "600px", margin: "0 auto" }}>
-          <p style={{
-            fontSize: "0.65rem",
-            fontWeight: 500,
-            letterSpacing: "0.22em",
-            textTransform: "uppercase",
-            color: theme.rose,
-            marginBottom: "1.5rem",
-          }}>
-            Connect
-          </p>
+      <FadeInSection className="relative z-10 max-w-xl mx-auto">
+        <p
+          className="text-xs font-medium tracking-widest uppercase mb-5"
+          style={{ color: TOKENS.rose }}
+        >
+          Begin when you're ready
+        </p>
 
-          <h2 className="display" style={{
-            fontSize: "3.5rem",
-            fontWeight: 300,
-            color: theme.white,
-            lineHeight: 1.1,
-            letterSpacing: "-0.01em",
-            marginBottom: "1.5rem",
-          }}>
-            Ready to explore <em style={{ fontStyle: "italic", color: theme.rose }}>your path?</em>
-          </h2>
+        <h2
+          className="font-light leading-tight mb-6"
+          style={{
+            fontFamily: "'Cormorant Garant', serif",
+            fontSize: "clamp(2.5rem, 6vw, 4rem)",
+            color: TOKENS.white,
+          }}
+        >
+          Your path{" "}
+          <em style={{ fontStyle: "italic", color: TOKENS.rose }}>
+            is waiting.
+          </em>
+        </h2>
 
-          <p style={{
-            fontSize: "1rem",
-            fontWeight: 300,
-            lineHeight: 1.75,
-            color: `${theme.silver}CC`,
-            marginBottom: "3rem",
-          }}>
-            Book a straightforward, relaxed consultation session to evaluate your current life dynamics together.
-          </p>
+        <p
+          className="text-base font-light leading-relaxed mb-10"
+          style={{ color: `${TOKENS.silver}CC` }}
+        >
+          Book a reading whenever it feels right. Sessions are held in a
+          calm, confidential space, entirely at your own pace.
+        </p>
 
-          <button className="cta-btn" style={{
-            fontSize: "0.8rem",
-            fontWeight: 500,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            padding: "1.1rem 3rem",
-            borderRadius: "50px",
-            border: "none",
-            background: theme.roseDark,
-            color: theme.white,
-            cursor: "pointer",
-            boxShadow: `0 8px 32px ${theme.deepRose}60`,
-          }}>
-            Book a Session
-          </button>
-        </div>
-      </section>
+        <a
+          href="mailto:hello@soulfulhealing.co.za"
+          className="inline-flex items-center gap-2 px-10 py-4 rounded-full text-sm font-medium tracking-widest uppercase transition-all duration-250"
+          style={{
+            background: TOKENS.roseDark,
+            color: TOKENS.white,
+            boxShadow: `0 8px 32px ${TOKENS.deepRose}66`,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = TOKENS.deepRose;
+            e.currentTarget.style.transform = "translateY(-2px)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = TOKENS.roseDark;
+            e.currentTarget.style.transform = "translateY(0)";
+          }}
+        >
+          Book a Reading
+          <ArrowRight size={15} />
+        </a>
 
-      {/* ── FOOTER ── */}
-      <footer style={{
-        background: theme.textDark,
-        borderTop: `1px solid #ffffff10`,
-        padding: "2.5rem 3rem",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        flexWrap: "wrap",
-        gap: "1rem",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <img 
-            src="/logo.jpeg" 
-            alt="Soulful Healing Small Logo" 
-            style={{ height: "24px", width: "24px", borderRadius: "50%", objectFit: "cover", opacity: 0.7 }}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-          <span className="display" style={{
-            fontSize: "1.1rem",
-            fontWeight: 300,
-            color: `${theme.white}60`,
-            letterSpacing: "0.06em",
-          }}>
+        <p
+          className="mt-5 text-xs"
+          style={{ color: `${TOKENS.silverDark}88` }}
+        >
+          Or email{" "}
+          <a
+            href="mailto:hello@soulfulhealing.co.za"
+            style={{ color: TOKENS.rose, textDecoration: "underline" }}
+          >
+            hello@soulfulhealing.co.za
+          </a>
+        </p>
+      </FadeInSection>
+    </section>
+  );
+}
+
+// =============================================================================
+// COMPONENT: <Footer>
+// =============================================================================
+// Minimal footer: stays on the dark charcoal background to feel continuous
+// with the CTA. Three link columns and a copyright line.
+// =============================================================================
+
+function Footer() {
+  return (
+    <footer
+      className="py-8 px-6 md:px-12"
+      style={{
+        background: TOKENS.charcoal,
+        borderTop: "1px solid rgba(255,255,255,0.07)",
+      }}
+    >
+      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+
+        {/* Brand mark */}
+        <div className="flex items-center gap-2.5">
+          <div
+            className="relative w-7 h-7 rounded-full overflow-hidden"
+            style={{ border: `1px solid ${TOKENS.rose}55` }}
+          >
+            <Image
+              src="/logo.JPEG"
+              alt="Soulful Healing"
+              fill
+              className="object-cover"
+            />
+          </div>
+          <span
+            className="font-light tracking-wide"
+            style={{
+              fontFamily: "'Cormorant Garant', serif",
+              fontSize: "1rem",
+              color: `${TOKENS.white}60`,
+            }}
+          >
             Soulful Healing
           </span>
         </div>
-        <p style={{ fontSize: "0.72rem", color: `${theme.white}30`, letterSpacing: "0.08em" }}>
-          © 2026 · All rights reserved
-        </p>
-        <div style={{ display: "flex", gap: "2rem" }}>
-          {["Privacy", "Terms", "Contact"].map((l) => (
-            <a key={l} href="#" style={{
-              fontSize: "0.72rem",
-              color: `${theme.white}40`,
-              textDecoration: "none",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-            }}>
-              {l}
+
+        {/* Footer links */}
+        <div className="flex items-center gap-8">
+          {[
+            { label: "Privacy Policy", href: "/privacy" },
+            { label: "Terms", href: "/terms" },
+            { label: "Contact", href: "#contact" },
+          ].map(({ label, href }) => (
+            <a
+              key={label}
+              href={href}
+              className="text-xs tracking-widest uppercase transition-colors duration-200"
+              style={{ color: `${TOKENS.white}35` }}
+              onMouseEnter={(e) => (e.target.style.color = TOKENS.rose)}
+              onMouseLeave={(e) => (e.target.style.color = `${TOKENS.white}35`)}
+            >
+              {label}
             </a>
           ))}
         </div>
-      </footer>
+
+        {/* Copyright */}
+        <p
+          className="text-xs"
+          style={{ color: `${TOKENS.white}25`, letterSpacing: "0.06em" }}
+        >
+          © 2026 Soulful Healing. All rights reserved.
+        </p>
+      </div>
+    </footer>
+  );
+}
+
+// =============================================================================
+// GLOBAL STYLES
+// =============================================================================
+// We inject a small <style> tag for things Tailwind can't do natively:
+//   - @import for Google Fonts (Cormorant Garant — the display serif)
+//   - @keyframes for the pulsing orb animation
+//   - prefers-reduced-motion: users who've opted out of animations see
+//     instant, non-animated transitions instead (accessibility best practice)
+// =============================================================================
+
+function GlobalStyles() {
+  return (
+    <style jsx global>{`
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap');
+
+      /* Smooth scroll: clicking anchor links (#journey, #services etc.)
+         scrolls the page smoothly rather than jumping instantly */
+      html {
+        scroll-behavior: smooth;
+      }
+
+      /* The orb-pulse animation for the hero background orb.
+         We animate opacity and scale on a 6-second infinite loop. */
+      @keyframes orb-pulse {
+        0%, 100% { opacity: 0.18; transform: translate(-42%, -52%) scale(1); }
+        50%       { opacity: 0.30; transform: translate(-42%, -52%) scale(1.05); }
+      }
+
+      .orb-pulse {
+        animation: orb-pulse 6s ease-in-out infinite;
+      }
+
+      /* Accessibility: if the user has "Reduce Motion" enabled in their OS,
+         we disable all animations and transitions site-wide */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+        .orb-pulse {
+          animation: none;
+        }
+      }
+    `}</style>
+  );
+}
+
+// =============================================================================
+// DEFAULT EXPORT: <HomePage>
+// =============================================================================
+// This is the actual page Next.js renders at the "/" route.
+// All it does is assemble our components in the right order.
+// The <GlobalStyles> component must come first so fonts load early.
+// =============================================================================
+
+export default function HomePage() {
+  return (
+    <>
+      {/* Inject fonts and keyframe animations */}
+      <GlobalStyles />
+
+      {/* Fixed navigation (sits above all sections via z-50) */}
+      <Navbar />
+
+      {/* Main page content — sections scroll in sequence */}
+      <main>
+        <HeroSection />
+        <JourneySection />
+        <ServicesSection />
+        <AboutSection />
+        <CtaSection />
+      </main>
+
+      {/* Footer at the very bottom */}
+      <Footer />
     </>
   );
 }

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-// Mock data matching the headless architecture framework
+// Integrated live pricing details into the core headless architecture structure
 const MODALITIES = [
   {
     id: 'reiki',
@@ -12,7 +12,8 @@ const MODALITIES = [
     longDesc: 'Reiki is a gentle, non-invasive subtle energy therapy that promotes deep relaxation, stress reduction, and holistic healing. By channeling universal life force energy, this practice works directly on your subtle energetic body to release stagnant patterns and accelerate physical and emotional wellness.',
     experience: 'You will remain fully clothed while relaxing on a comfortable massage table. The practitioner will place their hands gently on or just above specific energy centers (chakras) to facilitate a warm, radiating flow of restorative energy.',
     tags: ['Burned Out', 'Heavy Heart', 'Low Energy'],
-    animType: 'glow'
+    animType: 'glow',
+    price: 'R450' // Mapped cleanly to system context matrix
   },
   {
     id: 'breathwork',
@@ -21,7 +22,8 @@ const MODALITIES = [
     longDesc: 'Somatic Breathwork utilizes conscious, connected breathing rhythms to bypass the analytical mind and access the subconscious body. This deep somatic release allows for the safe processing of accumulated stress, emotional residue, and physical tension.',
     experience: 'Lying down comfortably, you will be guided through a sustained, continuous breathing pattern accompanied by curated acoustic frequencies. It is common to experience profound physical releases, emotional clarity, or deep meditative states.',
     tags: ['Overthinking', 'Burned Out', 'Seeking Clarity'],
-    animType: 'breath'
+    animType: 'breath',
+    price: 'R550'
   },
   {
     id: 'sound-therapy',
@@ -30,7 +32,128 @@ const MODALITIES = [
     longDesc: 'Sound Therapy utilizes vibrational frequencies from crystal singing bowls, gongs, and tuning forks to down-regulate your nervous system. The sound waves pull your brain into slow, deeply restorative theta and delta brainwave states, clearing cognitive chatter instantly.',
     experience: 'An immersive sound bath experience where you lie down under a warm blanket. The room is filled with acoustic vibrations that you don’t just hear, but actively feel vibrating through your body, inducing absolute stillness.',
     tags: ['Overthinking', 'Burned Out'],
-    animType: 'wave'
+    animType: 'wave',
+    price: 'R450'
+  },
+  {
+    id: 'angel-oracle',
+    title: 'Angel Oracle Reading',
+    shortDesc: 'Receive celestial guidance and vibrational alignment via sacred oracle cards.',
+    longDesc: 'Angel Oracle readings bridge earthly awareness with transcendent spiritual support. Using intuitive layouts, this modality decodes subtle energetic frequencies and messages to bring peace, reassurance, and validation to your current life phase.',
+    experience: 'A deeply collaborative and peaceful session where intentions are set before drawing from targeted oracle decks. Every card drawn acts as a reflective lens for your highest emotional well-being.',
+    tags: ['Seeking Clarity', 'Overthinking'],
+    animType: 'glow',
+    price: 'R300'
+  },
+  {
+    id: 'mini-insight',
+    title: 'Mini Insight Reading',
+    shortDesc: 'A swift, targeted energetic check-in covering 1 question via 1-3 cards.',
+    longDesc: 'Perfect for quick alignment updates or an immediate spiritual barometer check. This focused single-question intake parses archetypal motifs to clarify rapid choices.',
+    experience: 'Delivered seamlessly with a dynamic, short accompanying voice note breaking down your exact focal draw.',
+    tags: ['Seeking Clarity'],
+    animType: 'wave',
+    price: 'Free - R99'
+  },
+  {
+    id: 'three-card-clarity',
+    title: '3-Card Clarity Reading',
+    shortDesc: 'Focused guidance on a specific situation using a past, present, future matrix.',
+    longDesc: 'A classical elemental reading structure formulated to isolate the immediate core tensions, surrounding blocks, and paths forward for any single life scenario.',
+    experience: 'You will choose a core focus area. The layout targets immediate external influences and inner psychological currents for an immediate strategic snapshot.',
+    tags: ['Overthinking', 'Seeking Clarity'],
+    animType: 'breath',
+    price: 'R250'
+  },
+  {
+    id: 'numerology-basic',
+    title: 'Numerology Report (Basic)',
+    shortDesc: 'Core numerology profile and insights derived from mathematical natal patterns.',
+    longDesc: 'Unlock your fundamental vibrational signatures. This assessment maps structural core configurations to trace the underlying archetypal themes of your lifestyle geometry.',
+    experience: 'A complete breakdown of your essential energetic numbers, mapping key cosmic markers directly related to your name and birth date calculations.',
+    tags: ['Seeking Clarity'],
+    animType: 'glow',
+    price: 'R350'
+  },
+  {
+    id: 'numerology-detailed',
+    title: 'Numerology Report (Detailed)',
+    shortDesc: 'Comprehensive life path analysis and evolutionary timeline parsing.',
+    longDesc: 'A profound mathematical deep-dive into your cosmic timeline cycles, minor expressions, soul urges, and advanced destiny blueprints.',
+    experience: 'An extensive, personalized profile handbook outlining evolutionary trends, core lessons, and timing cycles over your entire lifecycle blueprint.',
+    tags: ['Seeking Clarity', 'Low Energy'],
+    animType: 'breath',
+    price: 'R500'
+  },
+  {
+    id: 'tarot-numerology-pkg',
+    title: 'Tarot + Numerology Package',
+    shortDesc: 'The definitive insight pairing matching structural matrices with intuitive layouts.',
+    longDesc: 'The ultimate integrative reading. By synthesizing your core structural life path numbers with a live, responsive cartomancy spread, we capture both your cosmic roadmap and immediate fluid energies.',
+    experience: 'An intensive dual-modality consultation designed to provide extensive cross-verified clarity across your historical patterns, present crossroads, and future potentials.',
+    tags: ['Seeking Clarity', 'Burned Out', 'Heavy Heart'],
+    animType: 'wave',
+    price: 'R600'
+  },
+  {
+    id: 'follow-up',
+    title: 'Follow-Up Reading',
+    shortDesc: 'A vital client check-in session to reassess active energetic shifts.',
+    longDesc: 'Designed exclusively for returning clients to track the unfolding integration of themes from previous readings, adjust strategies, and verify tracking path alignment.',
+    experience: 'An open-ended, fluid session reviewing updates on active crossroads and tuning into the practical results of your integration process.',
+    tags: ['Seeking Clarity'],
+    animType: 'glow',
+    price: 'R250'
+  },
+  {
+    id: 'love-relationship',
+    title: 'Love & Relationship Reading',
+    shortDesc: 'Heart-centered structural guidance for emotional alignment and core intimacy.',
+    longDesc: 'A target layout exploring active romance currents, underlying blockages, attachment cycles, and the deeper spiritual lessons present within your connections.',
+    experience: 'We look deeply at internal emotional archetypes to build a supportive map toward deeper security, communicative clarity, and healing.',
+    tags: ['Heavy Heart', 'Seeking Clarity'],
+    animType: 'breath',
+    price: 'R450'
+  },
+  {
+    id: 'compatibility',
+    title: 'Compatibility Reading',
+    shortDesc: 'In-depth comparative mapping of relational dynamics and shared vectors.',
+    longDesc: 'An evaluation analyzing the meeting points, complementary strengths, and inevitable frictional friction points between two individuals\' cosmic and psychological configurations.',
+    experience: 'Perfect for couples or close partners looking to understand emotional communication styles, subconscious friction triggers, and foundational developmental paths.',
+    tags: ['Seeking Clarity', 'Overthinking'],
+    animType: 'wave',
+    price: 'R600'
+  },
+  {
+    id: 'career-purpose',
+    title: 'Career & Purpose Reading',
+    shortDesc: 'Vocation analysis focusing on work, prosperity paths, and soul-level mission design.',
+    longDesc: 'Cut through professional fog. This targeted mapping uncovers natural skill structures, optimal professional environments, and upcoming vocational turning points.',
+    experience: 'A precise layout evaluating hidden talents, blocks to financial flow, and actionable steps to bring your labor into alignment with your spiritual blueprint.',
+    tags: ['Seeking Clarity', 'Burned Out'],
+    animType: 'glow',
+    price: 'R450'
+  },
+  {
+    id: 'annual-forecast',
+    title: 'Annual Forecast Reading',
+    shortDesc: 'A complete 12-month energetic layout mapping upcoming macro cycles.',
+    longDesc: 'Your personal energetic weather report for the entire year ahead. This overview tracks overarching lunar themes, changing seasons, and major card/number markers month by month.',
+    experience: 'Provides an expansive structural layout detailing exactly when to build, when to rest, when to execute changes, and when to sit in introspection.',
+    tags: ['Seeking Clarity'],
+    animType: 'breath',
+    price: 'R600'
+  },
+  {
+    id: 'monthly-forecast',
+    title: 'Monthly Forecast Reading',
+    shortDesc: 'Focused, detailed guidance for the immediate 30-day structural cycle.',
+    longDesc: 'A tight micro-reading focused on breaking down the immediate planetary currents, obstacles, and opportunities taking root over your current month.',
+    experience: 'Ideal for short-term tactical alignment and identifying practical focus areas for your current lunar framework.',
+    tags: ['Seeking Clarity', 'Overthinking'],
+    animType: 'wave',
+    price: 'R300'
   }
 ];
 
@@ -161,7 +284,13 @@ export default function ModalitiesPage() {
               )}
             </div>
 
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '10px' }}>{item.title}</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>{item.title}</h3>
+            
+            {/* Elegant Price Indicator Badge */}
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#8B3D54', marginBottom: '12px', display: 'block' }}>
+              {item.price}
+            </span>
+
             <p style={{ color: '#4B5563', fontSize: '0.925rem', lineHeight: '1.5', flexGrow: 1 }}>{item.shortDesc}</p>
             
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '16px' }}>
@@ -190,10 +319,14 @@ export default function ModalitiesPage() {
       >
         {selectedModality && (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827' }}>{selectedModality.title}</h2>
               <button onClick={() => setSelectedModality(null)} style={closeButtonStyle}>✕</button>
             </header>
+            
+            <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#8B3D54', marginBottom: '24px', display: 'block' }}>
+              Value: {selectedModality.price}
+            </span>
 
             <div style={{ flexGrow: 1, overflowY: 'auto', paddingRight: '4px' }}>
               <section style={{ marginBottom: '24px' }}>

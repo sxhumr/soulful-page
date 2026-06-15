@@ -560,7 +560,7 @@ export default function HomePage() {
                   cursor: "pointer",
                 }}
               >
-                The Modalities
+                Offerings
               </button>
             </Link>
           </div>

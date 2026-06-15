@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
+
 const theme = {
   platinum: "#F7F8FA",
   paleSilver: "#EDF0F4",
@@ -543,6 +544,7 @@ export default function HomePage() {
                 </button>
               </Link>
 
+<Link href="/modalities" style={{ textDecoration: 'none' }}>
               <button
                 className="tap-target"
                 style={{
@@ -560,26 +562,27 @@ export default function HomePage() {
               >
                 The Modalities
               </button>
-            </div>
-
+            </Link>
           </div>
 
+        </div>
+
+        <div style={{
+          position: "absolute",
+          bottom: "2.5rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "0.5rem",
+        }}>
           <div style={{
-            position: "absolute",
-            bottom: "2.5rem",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}>
-            <div style={{
-              width: "1px",
-              height: "40px",
-              background: `linear-gradient(to bottom, ${theme.silverDark}, transparent)`,
-            }} />
-          </div>
+            width: "1px",
+            height: "40px",
+            background: `linear-gradient(to bottom, ${theme.silverDark}, transparent)`,
+          }} />
+        </div>
         </section>
 
         {/* ── SERVICES ── */}

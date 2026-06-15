@@ -258,6 +258,8 @@ export default function HomePage() {
   const [novaInput, setNovaInput] = useState("");
   const [isNovaLoading, setIsNovaLoading] = useState(false);
   const [novaError, setNovaError] = useState(null);
+  // Hard lockout flag — set permanently on injection detection (cleared only by page refresh)
+  const [isBlocked, setIsBlocked] = useState(false);
 
   const novaEndRef = useRef(null);
 
@@ -273,7 +275,8 @@ export default function HomePage() {
 
   const handleSendNovaMessage = async (e) => {
     e.preventDefault();
-    if (!novaInput.trim() || isNovaLoading) return;
+    // Hard block — once triggered, only a page refresh can clear it
+    if (!novaInput.trim() || isNovaLoading || isBlocked) return;
 
     const currentText = novaInput.trim();
     const updatedPayload = [...novaMessages, { role: "user", content: currentText }];
@@ -290,15 +293,26 @@ export default function HomePage() {
         body: JSON.stringify({ messages: updatedPayload }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Upstream system mismatch (${response.status})`);
-      }
-
       let data;
       try {
         data = await response.json();
       } catch {
         throw new Error("Unable to read streaming cosmic payload.");
+      }
+
+      // ── 400 = injection detected by server ──
+      // Permanently lock the chat; only a page refresh resets state.
+      if (response.status === 400) {
+        setIsBlocked(true);
+        setNovaError(
+          data?.error ||
+          "Nova has detected an attempt to alter her cosmic alignment. Please refresh the page to continue."
+        );
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || `Upstream system mismatch (${response.status})`);
       }
 
       if (data?.error) {
@@ -1017,7 +1031,9 @@ export default function HomePage() {
           }}>
             Soulful Healing
           </span>
-         
+          <p style={{ fontSize: "0.72rem", color: `${theme.white}30`, letterSpacing: "0.08em" }}>
+            © 2026 · Celestial Architecture · All rights reserved
+          </p>
           <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "center" }}>
             {["Privacy", "Terms", "Ephemeris"].map((l) => (
               <a
@@ -1232,12 +1248,33 @@ export default function HomePage() {
                 </div>
               )}
 
-              {novaError && (
+              {/* ── Injection-detected hard block ── */}
+              {isBlocked && (
+                <div style={{
+                  background: `${theme.blush}80`,
+                  border: `1.5px solid ${theme.roseDark}`,
+                  padding: "0.85rem 1rem",
+                  borderRadius: "12px",
+                  lineHeight: 1.5,
+                  textAlign: "center",
+                }}>
+                  <div style={{ fontSize: "1.1rem", marginBottom: "0.35rem" }}>⚠️</div>
+                  <p style={{ fontSize: "0.75rem", color: theme.deepRose, fontWeight: 600, marginBottom: "0.25rem" }}>
+                    Cosmic Alignment Disrupted
+                  </p>
+                  <p style={{ fontSize: "0.72rem", color: theme.textMid, lineHeight: 1.5 }}>
+                    An attempt to override Nova's directives was detected. Please refresh the page to restore your connection.
+                  </p>
+                </div>
+              )}
+
+              {/* ── Standard transient error (non-blocking) ── */}
+              {novaError && !isBlocked && (
                 <div style={{
                   fontSize: "0.75rem",
-                  color: "#B91C1C",
-                  background: "#FEF2F2",
-                  border: "1px solid #FEE2E2",
+                  color: theme.deepRose,
+                  background: `${theme.blush}60`,
+                  border: `1px solid ${theme.rose}`,
                   padding: "0.6rem 0.85rem",
                   borderRadius: "10px",
                   lineHeight: 1.4,
@@ -1253,43 +1290,45 @@ export default function HomePage() {
               onSubmit={handleSendNovaMessage}
               style={{
                 padding: "0.85rem",
-                background: theme.white,
-                borderTop: `1px solid ${theme.silver}40`,
+                background: isBlocked ? theme.paleSilver : theme.white,
+                borderTop: `1px solid ${isBlocked ? theme.rose : theme.silver}40`,
                 display: "flex",
                 gap: "0.5rem",
                 flexShrink: 0,
+                transition: "background 0.3s ease",
               }}
             >
               <input
                 type="text"
                 value={novaInput}
-                onChange={(e) => setNovaInput(e.target.value)}
-                placeholder="Ask Nova a cosmic tracking question..."
-                disabled={isNovaLoading}
+                onChange={(e) => !isBlocked && setNovaInput(e.target.value)}
+                placeholder={isBlocked ? "Session locked — please refresh the page" : "Ask Nova a cosmic tracking question..."}
+                disabled={isNovaLoading || isBlocked}
                 style={{
                   flex: 1,
-                  border: `1px solid ${theme.silver}`,
+                  border: `1px solid ${isBlocked ? theme.rose : theme.silver}`,
                   borderRadius: "10px",
                   padding: "0.6rem 0.85rem",
                   fontSize: "16px", // Keeps iOS from forcing auto-zooms
                   outline: "none",
-                  color: theme.textDark,
-                  background: theme.white,
+                  color: isBlocked ? theme.textMuted : theme.textDark,
+                  background: isBlocked ? theme.paleSilver : theme.white,
+                  cursor: isBlocked ? "not-allowed" : "text",
                 }}
               />
               <button
                 type="submit"
-                disabled={isNovaLoading || !novaInput.trim()}
+                disabled={isNovaLoading || !novaInput.trim() || isBlocked}
                 className="tap-target"
                 style={{
-                  background: theme.deepRose,
+                  background: isBlocked ? theme.silver : theme.deepRose,
                   color: theme.white,
                   border: "none",
                   borderRadius: "10px",
                   padding: "0 1rem",
                   fontSize: "0.8rem",
                   fontWeight: 500,
-                  cursor: "pointer",
+                  cursor: isBlocked ? "not-allowed" : "pointer",
                   transition: "background 0.2s ease",
                 }}
                 onMouseEnter={(e) => {

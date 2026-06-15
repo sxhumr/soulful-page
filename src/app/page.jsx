@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const theme = {
   platinum: "#F7F8FA",
@@ -232,20 +233,22 @@ export default function HomePage() {
           ))}
         </div>
 
-        <button style={{
-          fontSize: "0.75rem",
-          fontWeight: 500,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          padding: "0.6rem 1.5rem",
-          borderRadius: "50px",
-          border: `1px solid ${theme.rose}`,
-          background: "transparent",
-          color: theme.deepRose,
-          cursor: "pointer",
-        }}>
-          Cast Your Chart
-        </button>
+        <Link href="/book" style={{ textDecoration: "none" }}>
+          <button style={{
+            fontSize: "0.75rem",
+            fontWeight: 500,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            padding: "0.6rem 1.5rem",
+            borderRadius: "50px",
+            border: `1px solid ${theme.rose}`,
+            background: "transparent",
+            color: theme.deepRose,
+            cursor: "pointer",
+          }}>
+            Cast Your Chart
+          </button>
+        </Link>
       </nav>
 
       {/* ── HERO ── */}
@@ -335,21 +338,23 @@ export default function HomePage() {
           </p>
 
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <button className="cta-btn" style={{
-              fontSize: "0.8rem",
-              fontWeight: 500,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              padding: "1rem 2.5rem",
-              borderRadius: "50px",
-              border: "none",
-              background: theme.roseDark,
-              color: theme.white,
-              cursor: "pointer",
-              boxShadow: `0 8px 24px ${theme.roseDark}40`,
-            }}>
-              Explore Your Chart
-            </button>
+            <Link href="/book" style={{ textDecoration: "none" }}>
+              <button className="cta-btn" style={{
+                fontSize: "0.8rem",
+                fontWeight: 500,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                padding: "1rem 2.5rem",
+                borderRadius: "50px",
+                border: "none",
+                background: theme.roseDark,
+                color: theme.white,
+                cursor: "pointer",
+                boxShadow: `0 8px 24px ${theme.roseDark}40`,
+              }}>
+                Explore Your Chart
+              </button>
+            </Link>
 
             <button style={{
               fontSize: "0.8rem",
@@ -379,7 +384,6 @@ export default function HomePage() {
           alignItems: "center",
           gap: "0.5rem",
         }}>
-         
           <div style={{
             width: "1px",
             height: "40px",
@@ -427,94 +431,96 @@ export default function HomePage() {
             }}
           >
             {services.map((s) => (
-              <div
-                key={s.label}
-                className="card"
-                style={{
-                  background: theme.platinum,
-                  borderRadius: "20px",
-                  padding: "2.5rem 2rem",
-                  border: `1px solid ${theme.silver}50`,
-                  cursor: "pointer",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                <div style={{
-                  position: "absolute",
-                  top: "-40px",
-                  right: "-40px",
-                  width: "120px",
-                  height: "120px",
-                  borderRadius: "50%",
-                  background: s.accent,
-                  opacity: 0.5,
-                  pointerEvents: "none",
-                }} />
+              <Link key={s.label} href="/book" style={{ textDecoration: "none" }}>
+                <div
+                  className="card"
+                  style={{
+                    background: theme.platinum,
+                    borderRadius: "20px",
+                    padding: "2.5rem 2rem",
+                    border: `1px solid ${theme.silver}50`,
+                    cursor: "pointer",
+                    position: "relative",
+                    overflow: "hidden",
+                    height: "100%",
+                  }}
+                >
+                  <div style={{
+                    position: "absolute",
+                    top: "-40px",
+                    right: "-40px",
+                    width: "120px",
+                    height: "120px",
+                    borderRadius: "50%",
+                    background: s.accent,
+                    opacity: 0.5,
+                    pointerEvents: "none",
+                  }} />
 
-                <div className="pillar-icon" style={{
-                  fontSize: "2.2rem",
-                  color: theme.deepRose,
-                  marginBottom: "2rem",
-                  lineHeight: 1,
-                }}>
-                  {s.icon}
-                </div>
-
-                <p style={{
-                  fontSize: "0.6rem",
-                  fontWeight: 500,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  color: theme.roseDark,
-                  marginBottom: "0.6rem",
-                }}>
-                  {s.tagline}
-                </p>
-
-                <h3 className="display" style={{
-                  fontSize: "1.6rem",
-                  fontWeight: 400,
-                  color: theme.textDark,
-                  marginBottom: "1rem",
-                  lineHeight: 1.15,
-                }}>
-                  {s.label}
-                </h3>
-
-                <p style={{
-                  fontSize: "0.9rem",
-                  lineHeight: 1.7,
-                  color: theme.textMuted,
-                  fontWeight: 300,
-                }}>
-                  {s.body}
-                </p>
-
-                <div style={{
-                  marginTop: "2rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.4rem",
-                }}>
-                  <span style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 500,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
+                  <div className="pillar-icon" style={{
+                    fontSize: "2.2rem",
                     color: theme.deepRose,
+                    marginBottom: "2rem",
+                    lineHeight: 1,
                   }}>
-                    Decode
-                  </span>
-                  <span style={{ color: theme.deepRose, fontSize: "0.8rem" }}>→</span>
+                    {s.icon}
+                  </div>
+
+                  <p style={{
+                    fontSize: "0.6rem",
+                    fontWeight: 500,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: theme.roseDark,
+                    marginBottom: "0.6rem",
+                  }}>
+                    {s.tagline}
+                  </p>
+
+                  <h3 className="display" style={{
+                    fontSize: "1.6rem",
+                    fontWeight: 400,
+                    color: theme.textDark,
+                    marginBottom: "1rem",
+                    lineHeight: 1.15,
+                  }}>
+                    {s.label}
+                  </h3>
+
+                  <p style={{
+                    fontSize: "0.9rem",
+                    lineHeight: 1.7,
+                    color: theme.textMuted,
+                    fontWeight: 300,
+                  }}>
+                    {s.body}
+                  </p>
+
+                  <div style={{
+                    marginTop: "2rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                  }}>
+                    <span style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 500,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: theme.deepRose,
+                    }}>
+                      Decode
+                    </span>
+                    <span style={{ color: theme.deepRose, fontSize: "0.8rem" }}>→</span>
+                  </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── CELESTIAL ALIGNMENT PILLARS (REPLACED STAT STRIP) ── */}
+      {/* ── CELESTIAL ALIGNMENT PILLARS ── */}
       <section style={{
         background: `linear-gradient(135deg, ${theme.blush} 0%, ${theme.paleSilver} 100%)`,
         padding: "5rem 3rem",
@@ -738,21 +744,23 @@ export default function HomePage() {
             Enter your natal metrics, configure your alignment parameters, and book an intimate, premium reading configured entirely around your planetary transits.
           </p>
 
-          <button className="cta-btn" style={{
-            fontSize: "0.8rem",
-            fontWeight: 500,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            padding: "1.1rem 3rem",
-            borderRadius: "50px",
-            border: "none",
-            background: theme.roseDark,
-            color: theme.white,
-            cursor: "pointer",
-            boxShadow: `0 8px 32px ${theme.deepRose}60`,
-          }}>
-            Initiate Alignment Session
-          </button>
+          <Link href="/book" style={{ textDecoration: "none" }}>
+            <button className="cta-btn" style={{
+              fontSize: "0.8rem",
+              fontWeight: 500,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              padding: "1.1rem 3rem",
+              borderRadius: "50px",
+              border: "none",
+              background: theme.roseDark,
+              color: theme.white,
+              cursor: "pointer",
+              boxShadow: `0 8px 32px ${theme.deepRose}60`,
+            }}>
+              Initiate Alignment Session
+            </button>
+          </Link>
         </div>
       </section>
 

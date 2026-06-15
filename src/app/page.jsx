@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
 const theme = {
@@ -116,6 +116,11 @@ const fonts = `
     .testimonials-grid {
       grid-template-columns: 1fr !important;
     }
+    .nova-window {
+      width: calc(100vw - 2rem) !important;
+      right: 1rem !important;
+      bottom: 5rem !important;
+    }
   }
 `;
 
@@ -145,30 +150,93 @@ const services = [
     icon: "☼",
     label: "Astrology & Birth Charts",
     tagline: "Celestial Blueprinting",
-    body:
-      "Map the precise alignment of the planets at the exact moment of your birth. Discover your cosmic blueprint, elemental makeup, and your unique destiny path.",
+    body: "Map the precise alignment of the planets at the exact moment of your birth. Discover your cosmic blueprint, elemental makeup, and your unique destiny path.",
     accent: theme.paleSilver,
   },
   {
     icon: "✦",
     label: "Tarot Readings",
     tagline: "Elemental Cartomancy",
-    body:
-      "Navigate life's crossroads with tailored spreads that decode immediate energetic currents, archetypal cycles, and hidden influences surrounding your path.",
+    body: "Navigate life's crossroads with tailored spreads that decode immediate energetic currents, archetypal cycles, and hidden influences surrounding your path.",
     accent: theme.blush,
   },
   {
     icon: "◎",
     label: "Cosmic Numerology",
     tagline: "Vibrational Geometry",
-    body:
-      "Your birth details hold key mathematical signatures. We translate these core integers to unlock your Life Path cycles, soul urges, and evolutionary timing.",
+    body: "Your birth details hold key mathematical signatures. We translate these core integers to unlock your Life Path cycles, soul urges, and evolutionary timing.",
     accent: theme.blush,
   },
 ];
 
 export default function HomePage() {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+
+  // Ask Nova Chatbot State Controls
+  const [isNovaOpen, setIsNovaOpen] = useState(false);
+  const [novaMessages, setNovaMessages] = useState([]);
+  const [novaInput, setNovaInput] = useState("");
+  const [isNovaLoading, setIsNovaLoading] = useState(false);
+  const [novaError, setNovaError] = useState(null);
+  
+  const novaEndRef = useRef(null);
+
+  const scrollNovaToBottom = () => {
+    novaEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (isNovaOpen) {
+      scrollNovaToBottom();
+    }
+  }, [novaMessages, isNovaLoading, isNovaOpen]);
+
+  const handleSendNovaMessage = async (e) => {
+    e.preventDefault();
+    if (!novaInput.trim() || isNovaLoading) return;
+
+    const currentText = novaInput.trim();
+    const updatedPayload = [...novaMessages, { role: "user", content: currentText }];
+
+    setNovaMessages(updatedPayload);
+    setNovaInput("");
+    setIsNovaLoading(true);
+    setNovaError(null);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: updatedPayload }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upstream system mismatch (${response.status})`);
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("Unable to read streaming cosmic payload.");
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.content) {
+        setNovaMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+      } else {
+        throw new Error("Nova returned an un-interpretable state cycle.");
+      }
+    } catch (err) {
+      console.error("Nova interface failure:", err);
+      setNovaError(err.message || "An unexpected planetary cycle disruption occurred.");
+    } finally {
+      setIsNovaLoading(false);
+    }
+  };
 
   return (
     <>
@@ -800,6 +868,230 @@ export default function HomePage() {
           ))}
         </div>
       </footer>
+
+      {/* ── ASK NOVA CHATBOT SECTION (BOTTOM RIGHT) ── */}
+      <div style={{ position: "fixed", bottom: "2rem", right: "2rem", zIndex: 1000 }}>
+        {/* Toggle Trigger Capsule */}
+        {!isNovaOpen && (
+          <button
+            onClick={() => setIsNovaOpen(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              background: theme.deepRose,
+              color: theme.white,
+              border: "none",
+              padding: "0.85rem 1.6rem",
+              borderRadius: "50px",
+              cursor: "pointer",
+              boxShadow: "0 8px 24px rgba(139, 61, 84, 0.35)",
+              fontSize: "0.8rem",
+              fontWeight: 500,
+              letterSpacing: "0.06em",
+              transition: "transform 0.2s ease, background 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.background = theme.roseDark;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.background = theme.deepRose;
+            }}
+          >
+            <span style={{ fontSize: "1rem" }}>✦</span> Ask Nova
+          </button>
+        )}
+
+        {/* Dynamic Conversation Window Drawer */}
+        {isNovaOpen && (
+          <div
+            className="nova-window"
+            style={{
+              position: "absolute",
+              bottom: "0",
+              right: "0",
+              width: "360px",
+              height: "460px",
+              background: theme.white,
+              borderRadius: "20px",
+              border: `1px solid ${theme.silver}60`,
+              boxShadow: "0 12px 40px rgba(45, 27, 35, 0.12)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              animation: "fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both",
+            }}
+          >
+            {/* Header Arena */}
+            <div style={{
+              background: `linear-gradient(135deg, ${theme.platinum}, ${theme.paleSilver})`,
+              padding: "1rem 1.25rem",
+              borderBottom: `1px solid ${theme.silver}40`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ color: theme.deepRose, fontSize: "1.1rem" }}>✦</span>
+                <div>
+                  <h4 className="display" style={{ fontSize: "1.15rem", fontWeight: 500, color: theme.textDark, lineHeight: 1.1 }}>
+                    Nova
+                  </h4>
+                  <p style={{ fontSize: "0.65rem", color: theme.textMuted, letterSpacing: "0.02em", marginTop: "2px" }}>
+                    Celestial Oracle Assistant
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsNovaOpen(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: theme.textMuted,
+                  fontSize: "1.2rem",
+                  cursor: "pointer",
+                  padding: "0.25rem",
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable Message History Pipeline */}
+            <div style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "1.25rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.85rem",
+              background: theme.platinum,
+            }}>
+              {novaMessages.length === 0 && (
+                <p style={{
+                  fontSize: "0.8rem",
+                  color: theme.textMuted,
+                  textAlign: "center",
+                  marginTop: "2rem",
+                  fontStyle: "italic",
+                  lineHeight: 1.5,
+                  padding: "0 1rem"
+                }}>
+                  Greetings traveler. I am Nova. Provide your curiosity or transit loops to clarify your current alignment trajectory.
+                </p>
+              )}
+
+              {novaMessages.map((msg, index) => (
+                <div
+                  key={index}
+                  style={{
+                    padding: "0.75rem 1rem",
+                    borderRadius: "14px",
+                    maxWidth: "85%",
+                    fontSize: "0.82rem",
+                    lineHeight: 1.5,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    marginLeft: msg.role === "user" ? "auto" : "0",
+                    marginRight: msg.role === "user" ? "0" : "auto",
+                    background: msg.role === "user" ? theme.deepRose : theme.white,
+                    color: msg.role === "user" ? theme.white : theme.textDark,
+                    border: msg.role === "user" ? "none" : `1px solid ${theme.silver}30`,
+                    boxShadow: msg.role === "user" ? "none" : "0 2px 8px rgba(0,0,0,0.02)",
+                  }}
+                >
+                  {msg.content}
+                </div>
+              ))}
+
+              {isNovaLoading && (
+                <div style={{
+                  fontSize: "0.75rem",
+                  color: theme.textMuted,
+                  fontStyle: "italic",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                  paddingLeft: "0.25rem"
+                }}>
+                  Nova is translating alignment parameters...
+                </div>
+              )}
+
+              {novaError && (
+                <div style={{
+                  fontSize: "0.75rem",
+                  color: "#B91C1C",
+                  background: "#FEF2F2",
+                  border: "1px solid #FEE2E2",
+                  padding: "0.6rem 0.85rem",
+                  borderRadius: "10px",
+                  lineHeight: 1.4
+                }}>
+                  {novaError}
+                </div>
+              )}
+              <div ref={novaEndRef} />
+            </div>
+
+            {/* Input System Control Drawer */}
+            <form
+              onSubmit={handleSendNovaMessage}
+              style={{
+                padding: "0.85rem",
+                background: theme.white,
+                borderTop: `1px solid ${theme.silver}40`,
+                display: "flex",
+                gap: "0.5rem",
+              }}
+            >
+              <input
+                type="text"
+                value={novaInput}
+                onChange={(e) => setNovaInput(e.target.value)}
+                placeholder="Ask Nova a cosmic tracking question..."
+                disabled={isNovaLoading}
+                style={{
+                  flex: 1,
+                  border: `1px solid ${theme.silver}`,
+                  borderRadius: "10px",
+                  padding: "0.6rem 0.85rem",
+                  fontSize: "16px", // Keeps iOS from forcing auto-zooms
+                  outline: "none",
+                  color: theme.textDark,
+                  background: theme.white,
+                }}
+              />
+              <button
+                type="submit"
+                disabled={isNovaLoading || !novaInput.trim()}
+                style={{
+                  background: theme.deepRose,
+                  color: theme.white,
+                  border: "none",
+                  borderRadius: "10px",
+                  padding: "0 1rem",
+                  fontSize: "0.8rem",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "background 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) e.currentTarget.style.background = theme.roseDark;
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.currentTarget.disabled) e.currentTarget.style.background = theme.deepRose;
+                }}
+              >
+                Send
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </>
   );
 }

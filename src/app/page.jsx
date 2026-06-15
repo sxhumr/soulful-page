@@ -1034,9 +1034,7 @@ export default function HomePage() {
           }}>
             Soulful Healing
           </span>
-          <p style={{ fontSize: "0.72rem", color: `${theme.white}30`, letterSpacing: "0.08em" }}>
-            © 2026 · Celestial Architecture · All rights reserved
-          </p>
+          
           <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "center" }}>
             {["Privacy", "Terms", "Ephemeris"].map((l) => (
               <a

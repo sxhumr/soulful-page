@@ -5,36 +5,8 @@ import Link from 'next/link';
 
 // Integrated live pricing details into the core headless architecture structure
 const MODALITIES = [
-  {
-    id: 'reiki',
-    title: 'Energy Reiki',
-    shortDesc: 'Restore your natural energetic balance and clear deep emotional blockages.',
-    longDesc: 'Reiki is a gentle, non-invasive subtle energy therapy that promotes deep relaxation, stress reduction, and holistic healing. By channeling universal life force energy, this practice works directly on your subtle energetic body to release stagnant patterns and accelerate physical and emotional wellness.',
-    experience: 'You will remain fully clothed while relaxing on a comfortable massage table. The practitioner will place their hands gently on or just above specific energy centers (chakras) to facilitate a warm, radiating flow of restorative energy.',
-    tags: ['Burned Out', 'Heavy Heart', 'Low Energy'],
-    animType: 'glow',
-    price: 'R450' // Mapped cleanly to system context matrix
-  },
-  {
-    id: 'breathwork',
-    title: 'Somatic Breathwork',
-    shortDesc: 'Regulate your nervous system and release stored trauma through conscious breathing.',
-    longDesc: 'Somatic Breathwork utilizes conscious, connected breathing rhythms to bypass the analytical mind and access the subconscious body. This deep somatic release allows for the safe processing of accumulated stress, emotional residue, and physical tension.',
-    experience: 'Lying down comfortably, you will be guided through a sustained, continuous breathing pattern accompanied by curated acoustic frequencies. It is common to experience profound physical releases, emotional clarity, or deep meditative states.',
-    tags: ['Overthinking', 'Burned Out', 'Seeking Clarity'],
-    animType: 'breath',
-    price: 'R550'
-  },
-  {
-    id: 'sound-therapy',
-    title: 'Acoustic Sound Therapy',
-    shortDesc: 'Calm brainwave frequencies into deep meditation using therapeutic soundscapes.',
-    longDesc: 'Sound Therapy utilizes vibrational frequencies from crystal singing bowls, gongs, and tuning forks to down-regulate your nervous system. The sound waves pull your brain into slow, deeply restorative theta and delta brainwave states, clearing cognitive chatter instantly.',
-    experience: 'An immersive sound bath experience where you lie down under a warm blanket. The room is filled with acoustic vibrations that you don’t just hear, but actively feel vibrating through your body, inducing absolute stillness.',
-    tags: ['Overthinking', 'Burned Out'],
-    animType: 'wave',
-    price: 'R450'
-  },
+  
+  
   {
     id: 'angel-oracle',
     title: 'Angel Oracle Reading',
@@ -53,7 +25,7 @@ const MODALITIES = [
     experience: 'Delivered seamlessly with a dynamic, short accompanying voice note breaking down your exact focal draw.',
     tags: ['Seeking Clarity'],
     animType: 'wave',
-    price: 'Free - R99'
+    price: 'R99'
   },
   {
     id: 'three-card-clarity',
@@ -83,7 +55,7 @@ const MODALITIES = [
     experience: 'An extensive, personalized profile handbook outlining evolutionary trends, core lessons, and timing cycles over your entire lifecycle blueprint.',
     tags: ['Seeking Clarity', 'Low Energy'],
     animType: 'breath',
-    price: 'R500'
+    price: 'R450'
   },
   {
     id: 'tarot-numerology-pkg',
@@ -93,7 +65,7 @@ const MODALITIES = [
     experience: 'An intensive dual-modality consultation designed to provide extensive cross-verified clarity across your historical patterns, present crossroads, and future potentials.',
     tags: ['Seeking Clarity', 'Burned Out', 'Heavy Heart'],
     animType: 'wave',
-    price: 'R600'
+    price: 'R400'
   },
   {
     id: 'follow-up',
@@ -113,7 +85,7 @@ const MODALITIES = [
     experience: 'We look deeply at internal emotional archetypes to build a supportive map toward deeper security, communicative clarity, and healing.',
     tags: ['Heavy Heart', 'Seeking Clarity'],
     animType: 'breath',
-    price: 'R450'
+    price: 'R250'
   },
   {
     id: 'compatibility',
@@ -123,7 +95,7 @@ const MODALITIES = [
     experience: 'Perfect for couples or close partners looking to understand emotional communication styles, subconscious friction triggers, and foundational developmental paths.',
     tags: ['Seeking Clarity', 'Overthinking'],
     animType: 'wave',
-    price: 'R600'
+    price: 'R400'
   },
   {
     id: 'career-purpose',
@@ -143,7 +115,7 @@ const MODALITIES = [
     experience: 'Provides an expansive structural layout detailing exactly when to build, when to rest, when to execute changes, and when to sit in introspection.',
     tags: ['Seeking Clarity'],
     animType: 'breath',
-    price: 'R600'
+    price: 'R400'
   },
   {
     id: 'monthly-forecast',
@@ -153,7 +125,7 @@ const MODALITIES = [
     experience: 'Ideal for short-term tactical alignment and identifying practical focus areas for your current lunar framework.',
     tags: ['Seeking Clarity', 'Overthinking'],
     animType: 'wave',
-    price: 'R300'
+    price: 'R200'
   }
 ];
 

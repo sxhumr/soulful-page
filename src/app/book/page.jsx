@@ -23,7 +23,7 @@ export default function BookingPage() {
     setStatus({ loading: true, success: null, error: null });
 
     try {
-      const response = await fetch('/api/booking', {
+      const response = await fetch('/api/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

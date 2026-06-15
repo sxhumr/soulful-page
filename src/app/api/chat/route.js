@@ -89,33 +89,39 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No valid messages provided.' }, { status: 400 });
     }
 
-    // ── Call Anthropic API with server-side system prompt ──
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    // ── Call Groq API with server-side system prompt ──
+    // Groq uses the OpenAI-compatible chat completions format.
+    // The system prompt is prepended as the first message with role: 'system'.
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method:  'POST',
       headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         process.env.GROQ_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model:      'claude-haiku-4-5-20251001',  // Fast & cost-efficient for chat
-        max_tokens: 1024,
-        system:     NOVA_SYSTEM_PROMPT,  // ← Injected server-side every single request
-        messages:   safeMessages,
+        model:       'llama-3.3-70b-versatile', // Fast, high-quality Groq model
+        max_tokens:  1024,
+        temperature: 0.7,
+        messages: [
+          // System prompt injected server-side on every request — never touches the client
+          { role: 'system', content: NOVA_SYSTEM_PROMPT },
+          ...safeMessages,
+        ],
       }),
     });
 
-    const data = await anthropicResponse.json();
+    const data = await groqResponse.json();
 
-    if (!anthropicResponse.ok) {
-      console.error('Anthropic API error:', data);
+    if (!groqResponse.ok) {
+      console.error('Groq API error:', data);
       return NextResponse.json(
         { error: data?.error?.message || 'Nova is temporarily unavailable. Please try again.' },
-        { status: anthropicResponse.status }
+        { status: groqResponse.status }
       );
     }
 
-    const content = data?.content?.[0]?.text;
+    // Groq follows the OpenAI response shape: choices[0].message.content
+    const content = data?.choices?.[0]?.message?.content;
 
     if (!content) {
       return NextResponse.json(
